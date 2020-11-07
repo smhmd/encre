@@ -1,0 +1,58 @@
+{
+  "name": "ako-sketch",
+  "version": "0.0.1",
+  "description": "Sketch SVG",
+  "main": "dist/ako-sketch.umd.bundle.js",
+  "module": "dist/ako-sketch.es.bundle.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "dist/index.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "clean": "rimraf ./dist ./.vitepress/dist ./playground/dist",
+    "clean:snap": "node ./scripts/cleanSnap.js",
+    "dev": "vite -c ./vite.config.js",
+    "build": "rollup --config=rollup.config.js",
+    "build:dev": "cross-env node ./scripts/buildDev.js",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zzh97228/ako-sketch.git"
+  },
+  "author": "lagabu <1002723879@qq.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zzh97228/ako-sketch/issues"
+  },
+  "homepage": "https://github.com/zzh97228/ako-sketch#readme",
+  "devDependencies": {
+    "@lagabu/tool": "^0.0.1-alpha.3",
+    "@rollup/plugin-alias": "^3.1.1",
+    "@rollup/plugin-commonjs": "^16.0.0",
+    "@rollup/plugin-node-resolve": "^9.0.0",
+    "@types/jest": "^25.2.3",
+    "@vue/compiler-sfc": "^3.0.0",
+    "@vue/test-utils": "^2.0.0-beta.8",
+    "cross-env": "^7.0.2",
+    "jest": "^26.0.1",
+    "jest-canvas-mock": "^2.2.0",
+    "jest-cli": "^26.0.1",
+    "jest-css-modules": "^2.1.0",
+    "jest-serializer-html": "^7.0.0",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.33.1",
+    "rollup-plugin-typescript2": "^0.27.2",
+    "shelljs": "^0.8.4",
+    "ts-jest": "^26.0.0",
+    "typescript": "^3.9.3",
+    "vite": "^1.0.0-rc.8",
+    "vitepress": "^0.7.1",
+    "vue": "^3.0.2"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.2"
+  }
+}
