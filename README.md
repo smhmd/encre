@@ -1,1 +1,1 @@
-<h1 align="center">AkoSketch</h1>
+<h1 align="center">Encre</h1>

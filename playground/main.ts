@@ -1,5 +1,4 @@
 import { createApp } from 'vue';
+import { install } from '/@lagabu/encre-ui/src/index';
 import App from './App.vue';
-import { AkoSketch } from '/src/index';
-
-createApp(App).use(AkoSketch).mount('#app');
+createApp(App).use(install).mount('#app');
