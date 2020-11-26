@@ -1,5 +1,5 @@
 module.exports = {
-  title: 'Documentation',
-  decription: 'Documentation',
+  title: 'Encre',
+  decription: 'Encre',
   base: process.env.NODE_ENV === 'production' ? '/encre/' : '/',
 };

@@ -15,5 +15,5 @@ jobs:
         with: 
           persist-credentials: false
 
-      - name: Install & Test
-        run: yarn install && yarn test
+      - name: Install
+        run: yarn install
