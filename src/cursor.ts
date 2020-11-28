@@ -14,19 +14,25 @@ export class Cursor {
   static get commonAncestorContainer() {
     return Cursor.range?.commonAncestorContainer || null;
   }
-  static get commonAncestorNode() {
-    return (root: AbstractNode) => {
-      const container = Cursor.commonAncestorContainer?.parentElement;
-      if (!container || isUndefined(container._uid)) return null;
-      return traverse(root, container._uid) || null;
-    };
+
+  range?: Range | null;
+  editor: AbstractNode;
+  constructor(rootNode: AbstractNode) {
+    this.editor = rootNode;
   }
-  range: Range;
-  constructor() {
-    this.range = Cursor.range || document.createRange();
+  get ancestorNode() {
+    const container = Cursor.commonAncestorContainer;
+    if (!container || isUndefined(container._uid)) return null;
+    return traverse(this.editor, container._uid) || null;
   }
   // TODO
-  saveRange() {}
+  saveRange(r?: Range) {
+    if (r) {
+      this.range = r
+      return
+    }
+    this.range = Cursor.range
+  }
   // TODO
   recoverRange() {}
 }

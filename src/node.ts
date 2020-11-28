@@ -7,11 +7,15 @@ import {
   isUndefined,
   deepClone,
   EncreError,
+  getTop,
+  setTop,
+  isTextNode,
 } from './helpers';
 
 export const enum ABSTRACT_NODE_TYPE {
   FRAGMENT = 1,
   NODES = 1 << 1,
+  TEXT = 1 << 2,
 }
 
 export type AbstractNodeChildren = Array<string | AbstractNode>;
@@ -19,43 +23,67 @@ export type AbstractProps = { [props: string]: any } & {
   class?: string | Record<string, any>;
   style?: string | Record<string, any>;
 };
-
+type FragOrElementOrText = DocumentFragment | HTMLElement | Text;
 export interface AbstractNode {
   _is_abstract_node?: true;
   _uid?: number;
+  _elm?: FragOrElementOrText;
   children: AbstractNodeChildren;
   props: AbstractProps;
   type: ABSTRACT_NODE_TYPE;
   tag: string;
 }
 
+export interface NormalizedAbstractNode extends AbstractNode {
+  children: Array<AbstractNode>;
+}
+
 export type ANodeChildren = AbstractNodeChildren | string | AbstractNode;
 export function isANode(obj: any): obj is AbstractNode {
   return !!(obj as AbstractNode)._is_abstract_node;
 }
+let _uid = 0;
+function createTextANode(...args: string[]): AbstractNode {
+  return {
+    _uid: _uid++,
+    _is_abstract_node: true,
+    children: args,
+    props: {},
+    type: ABSTRACT_NODE_TYPE.TEXT,
+    tag: '',
+  };
+}
+
 function normalizeNodeChildren(children: ANodeChildren) {
-  if (isString(children) || isANode(children)) {
+  if (isString(children)) {
+    return [createTextANode(children)];
+  } else if (isANode(children)) {
     return [children];
   } else if (isArray(children)) {
-    return children;
+    let child: string | AbstractNode;
+    for (let i = 0; i < children.length; i++) {
+      child = children[i];
+      if (isString(child)) {
+        children[i] = createTextANode(child);
+      }
+    }
+    return children as AbstractNode[];
   }
   return [];
 }
-let _uid = 0;
-function createANode(frag: AbstractNodeChildren): AbstractNode;
-function createANode(tag: string): AbstractNode;
+function createANode(frag: AbstractNodeChildren): NormalizedAbstractNode;
+function createANode(tag: string): NormalizedAbstractNode;
 function createANode(
   tag: string,
   propsOrChildren: ANodeChildren | AbstractProps
-): AbstractNode;
+): NormalizedAbstractNode;
 function createANode(
   tag: string,
   props: AbstractProps,
   children: ANodeChildren
-): AbstractNode;
-function createANode(...args: any[]): AbstractNode {
-  let tag: string = '';
-  const result: AbstractNode = {
+): NormalizedAbstractNode;
+function createANode(...args: any[]): NormalizedAbstractNode {
+  const result: NormalizedAbstractNode = {
     _uid: _uid++,
     _is_abstract_node: true,
     children: [],
@@ -65,34 +93,30 @@ function createANode(...args: any[]): AbstractNode {
   };
   if (args.length === 1) {
     if (isArray<string | AbstractNode>(args[0])) {
-      result.children = args[0];
+      result.children = normalizeNodeChildren(args[0]);
       result.type = ABSTRACT_NODE_TYPE.FRAGMENT;
       return result;
     }
   } else if (args.length === 2) {
-    if (isArray<string | AbstractNode>(args[1])) {
-      result.children = args[1];
-    } else if (isObject(args[1])) {
-      if (isANode(args[1])) {
-        result.children = [args[1]];
-      } else {
-        result.props = args[1];
-      }
-    } else if (isString(args[1])) {
-      result.children = [args[1]];
+    if (isObject(args[1]) && !isANode(args[1])) {
+      result.props = args[1];
+    } else {
+      result.children = normalizeNodeChildren(args[1]);
     }
   } else if (args.length === 3) {
-    isObject(args[1]) && (result.props = args[1]);
+    isObject(args[1]) && !isANode(args[1]) && (result.props = args[1]);
     result.children = normalizeNodeChildren(args[2]);
   }
   result.tag = args[0];
   return result;
 }
 
-function _resolveProps(elm: DocumentFragment | HTMLElement, n: AbstractNode) {
-  if (elm instanceof DocumentFragment) return;
+function _resolveProps(elm: FragOrElementOrText, n: AbstractNode) {
   elm._uid = n._uid;
   elm._is_abstract_node = true;
+  if (!(elm instanceof HTMLElement)) {
+    return;
+  }
   const props = n.props;
   for (let key in props) {
     switch (key) {
@@ -137,77 +161,90 @@ function _render(n: AbstractNode) {
   if (!hasDocument()) {
     throw new EncreError('No Document Specified');
   }
-  const elm =
-    n.type === ABSTRACT_NODE_TYPE.FRAGMENT
-      ? document.createDocumentFragment()
-      : document.createElement(n.tag);
+
+  let elm: FragOrElementOrText = document.createDocumentFragment();
+  if (n.type === ABSTRACT_NODE_TYPE.NODES) {
+    elm = document.createElement(n.tag);
+  } else if (n.type === ABSTRACT_NODE_TYPE.TEXT) {
+    elm = document.createTextNode(String(n.children.join('')));
+  }
   // resolve prop
   _resolveProps(elm, n);
+  // bind current elm
+  n._elm = elm;
   return elm;
 }
 
 export const PathMap = new Map<number, number[]>();
-
+interface ElmStackInner {
+  childrenCount: number;
+  rawCount: number;
+  elm: FragOrElementOrText;
+}
 function renderANode(n: AbstractNode, structArray: number[] = []) {
-  const nodeStack: AbstractNode[] = [n];
-  const elmStack: Array<{
-    childrenCount: number;
-    rawCount: number;
-    elm: DocumentFragment | HTMLElement;
-  }> = [];
-  const getTop = () => elmStack[elmStack.length - 1];
+  const nodeStack: Array<AbstractNode> = [n];
+  const elmStack: Array<ElmStackInner> = [];
   const pathArray = structArray.concat([0]);
 
   let currNode: AbstractNode,
-    currElem: HTMLElement | DocumentFragment,
+    currElem: FragOrElementOrText,
     childNode: AbstractNode | string,
-    realLength = 0, // node's children length without string
+    currentTop: ElmStackInner,
     level = 0, // node level
     currUID = -1,
-    result: HTMLElement | DocumentFragment = document.createDocumentFragment();
+    result: FragOrElementOrText = document.createDocumentFragment();
   while (nodeStack.length > 0) {
-    if (elmStack.length > 0 && getTop()) {
-      getTop().childrenCount -= 1;
+    // get elmStack top element -> current leaves' parent
+    currentTop = getTop(elmStack);
+    if (currentTop) {
+      currentTop.childrenCount -= 1;
     }
     // traverse start
     currNode = nodeStack.pop()!;
     currElem = _render(currNode);
-    // set path map
-    // eg: [0, [0, 0, 1]]
-    if (getTop()) {
-      pathArray[level] = getTop().rawCount - getTop().childrenCount - 1;
+
+    if (currentTop) {
+      pathArray[level] = currentTop.rawCount - currentTop.childrenCount - 1;
     }
     currUID = isUndefined(currNode._uid) ? -1 : currNode._uid;
+    // set path map
+    // eg: [0, [0, 0, 1]]
     PathMap.set(currUID, [...pathArray]);
-
-    if (currNode.children.length === 0) {
-      getTop() && getTop().elm.append(currElem);
+    if (
+      currNode.children.length === 0 ||
+      currNode.type === ABSTRACT_NODE_TYPE.TEXT
+    ) {
+      currentTop &&
+        !(currentTop.elm instanceof Text) &&
+        currentTop.elm.append(currElem);
     } else {
-      realLength = 0;
       for (let i = currNode.children.length - 1; i >= 0; i--) {
         childNode = currNode.children[i];
-        if (isString(childNode)) {
-          currElem.append(childNode);
-          continue;
-        }
-        realLength++;
-        nodeStack.push(childNode);
+        nodeStack.push(
+          isString(childNode) ? createTextANode(childNode) : childNode
+        );
       }
       elmStack.push({
-        rawCount: realLength,
-        childrenCount: realLength,
+        rawCount: currNode.children.length,
+        childrenCount: currNode.children.length,
         elm: currElem,
       });
       level++;
     }
 
     // taverse end & close tag
-    while (elmStack.length > 0 && getTop() && getTop().childrenCount === 0) {
+    while (
+      elmStack.length > 0 &&
+      (currentTop = getTop(elmStack)) &&
+      currentTop.childrenCount === 0
+    ) {
       currElem = elmStack.pop()!.elm;
       pathArray.pop();
       level = level > 0 ? level - 1 : level;
       if (elmStack.length > 0) {
-        getTop().elm.append(currElem);
+        (getTop(elmStack).elm as HTMLElement | DocumentFragment).append(
+          currElem
+        );
       }
     }
   }
@@ -226,8 +263,14 @@ function serialize(elm: DocumentFragment | HTMLElement) {
     return elm.outerHTML;
   }
 }
-
-function traverse(root: AbstractNode, _uid: number) {
+export type TraverseReturn = {
+  parent: AbstractNode | undefined;
+  current: AbstractNode | undefined;
+};
+function traverse(
+  root: AbstractNode,
+  _uid: number
+): TraverseReturn | undefined {
   const path = PathMap.get(_uid);
   if (!path) return;
   if (root.children.length === 0) {
@@ -237,9 +280,12 @@ function traverse(root: AbstractNode, _uid: number) {
     };
   }
   let i = 1,
-    parentNode = root;
-  const topNode = () =>
-    parentNode.children.filter((c) => !isString(c))[path[i]] as AbstractNode;
+    parentNode: AbstractNode | undefined = root;
+  const topNode = () => {
+    if (!parentNode || isString(parentNode)) return;
+    if (parentNode.type === ABSTRACT_NODE_TYPE.TEXT) return parentNode;
+    return parentNode.children[path[i]] as AbstractNode;
+  };
   for (; i < path.length - 1; i++) {
     parentNode = topNode();
   }
@@ -311,9 +357,18 @@ export const enum PATCH_FLAG {
 function patchNode(
   oldNode: AbstractNode,
   newNode: AbstractNode,
-  flag: PATCH_FLAG = PATCH_FLAG.TEXT
-) {}
-function patchNodeAndUpdate() {}
+  flag: PATCH_FLAG = PATCH_FLAG.TEXT,
+  cb = () => {}
+) {
+  if (flag === PATCH_FLAG.TEXT && isTextNode(newNode._elm)) {
+    newNode.children = [newNode._elm.data];
+  }
+  cb && cb();
+}
+
+function patchNodeAndUpdate(...args: Parameters<typeof patchNode>) {
+  return patchNode(args[0], args[1], args[2]);
+}
 
 export {
   renderANode,

@@ -21,6 +21,10 @@ export function isUndefined(str: any): str is undefined {
   return typeof str === 'undefined';
 }
 
+export function isTextNode(node: any): node is Text {
+  return !!node && !!node.nodeName && node.nodeName === '#text';
+}
+
 export function hasDocument() {
   return typeof document !== 'undefined';
 }
@@ -62,4 +66,27 @@ export class EncreError extends Error {
 }
 export function throwError(msg: string = '') {
   throw new EncreError(msg);
+}
+
+export function getTop<T = any>(arr: Array<T>) {
+  return arr[arr.length - 1];
+}
+
+export function setTop<T = any>(arr: Array<T>, val: T) {
+  return (arr[arr.length - 1] = val);
+}
+
+export function debounce<T extends (...args: any) => any>(
+  callback: T,
+  timeout = 300
+) {
+  let timer: any;
+  return function (...args: Parameters<T>) {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      callback && callback.apply(null, args);
+    }, timeout);
+  };
 }

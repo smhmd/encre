@@ -5,4 +5,5 @@ declare global {
     _is_abstract_node?: boolean;
   }
   interface HTMLElement extends EncreElement {}
+  interface Node extends EncreElement {}
 }

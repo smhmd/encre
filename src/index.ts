@@ -1,10 +1,9 @@
-import { Editor } from './editor';
+import { Editor, EditorOptions } from './editor';
 import { EncreError, hasDocument, isString, throwError } from './helpers';
-export type EncreOptions = {};
-
-export function createEditor(options: EncreOptions = {}) {
+export { createANode as h } from './node';
+export function createEditor(options: EditorOptions = {}) {
   const plugins = [];
-  const editor = new Editor();
+  const editor = new Editor(options);
   const result = {
     use(plugin: any) {
       // TODO use some plugins
