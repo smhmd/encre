@@ -1,38 +1,87 @@
-import { hasWindow, isUndefined, throwError } from './helpers';
-import { AbstractNode, traverse, PathMap } from './node';
+import { $ } from './dom';
+import { EncreEditor } from './editor';
+import { EditorRoles } from './elements';
+import { isUndefined } from './helpers';
 
-export class Cursor {
-  static get selection() {
-    if (!hasWindow()) throwError('No Window Specified');
-    return window.getSelection();
+function createGetParentTemplate(
+  n: Node | HTMLElement,
+  cb: (parent: HTMLElement) => boolean = (...args: any) => false
+) {
+  let parent = n.parentElement;
+  while (parent && !cb.call(null, parent)) {
+    parent = parent.parentElement;
   }
-  static get range() {
-    let selection: Selection | null;
-    if (!(selection = Cursor.selection) || !selection.rangeCount) return null;
-    return selection.getRangeAt(0);
-  }
-  static get commonAncestorContainer() {
-    return Cursor.range?.commonAncestorContainer || null;
+  return parent;
+}
+
+// const getClosestParagrph = (node: Node) =>
+//   createGetParentTemplate(
+//     node,
+//     (parent) => parent.getAttribute('contenteditable') === 'true'
+//   );
+
+const getClosetBlock = (n: Node) =>
+  createGetParentTemplate(
+    n,
+    (parent) => parent.getAttribute('role') === EditorRoles.EDITOR_BLOCK
+  );
+
+export class EncreCursor {
+  range?: Range;
+  cursoredElm?: HTMLElement;
+  $editor: EncreEditor;
+  constructor(editor: EncreEditor) {
+    this.$editor = editor;
   }
 
-  range?: Range | null;
-  editor: AbstractNode;
-  constructor(rootNode: AbstractNode) {
-    this.editor = rootNode;
+  get collapsed() {
+    return this.range?.collapsed;
   }
-  get ancestorNode() {
-    const container = Cursor.commonAncestorContainer;
-    if (!container || isUndefined(container._uid)) return null;
-    return traverse(this.editor, container._uid) || null;
+
+  get rangeSameNode() {
+    if (!this.range) return;
+    return (
+      !this.collapsed &&
+      this.range.startContainer === this.range.endContainer &&
+      this.range.commonAncestorContainer === this.range.startContainer &&
+      this.range.commonAncestorContainer === this.range.endContainer
+    );
   }
-  // TODO
-  saveRange(r?: Range) {
+
+  initRange(rootElm: Element) {
+    const node = $.getLastRightNode(rootElm),
+      offset = node.textContent?.length || 0;
+    if (!node || isUndefined(offset)) return;
+    this.range = $.setCursor(node, offset);
+    this.saveCursoredElm();
+  }
+
+  saveRange(r?: Range | null) {
     if (r) {
-      this.range = r
-      return
+      this.range = r;
+      return;
     }
-    this.range = Cursor.range
+    let tempRange: Range | null;
+    if ((tempRange = $.range)) {
+      this.range = tempRange;
+    }
   }
-  // TODO
-  recoverRange() {}
+
+  saveCursoredElm() {
+    if (!this.range) return;
+    let cursoringElm: HTMLElement | null;
+    if (
+      (cursoringElm = getClosetBlock(this.range.startContainer)) &&
+      this.cursoredElm !== cursoringElm
+    ) {
+      if (this.cursoredElm) {
+        // remove previous cursored focus class
+        this.cursoredElm.classList.remove(this.$editor.focusClassName);
+      }
+      // set cursored paragraph
+      this.cursoredElm = cursoringElm;
+      // add focused class to new cursoring elment
+      this.cursoredElm.classList.add(this.$editor.focusClassName);
+    }
+  }
 }

@@ -1,146 +1,82 @@
-import { Cursor } from './cursor';
-import { hasDocument, isString, debounce, throwError } from './helpers';
-import {
-  AbstractNode,
-  AbstractNodeChildren,
-  createANode as hyper,
-  renderANode as render,
-  cloneAbstractNode,
-  ANodeChildren,
-  isANode,
-  patchNode,
-  TraverseReturn,
-  PATCH_FLAG,
-} from './node';
-import { EditorElement, ElementOptions } from './elements';
-export type EditorOptions = {
-  placeholder?: string | AbstractNode;
-  classes?: ElementOptions;
+import { EncreCursor } from './cursor';
+import { AbstractDom, render, $ } from './dom';
+import { b, createDefaultEditor, p } from './elements';
+import { EncreEvent } from './events';
+export type EditorOptions = { [prop: string]: any } & {
+  readonly?: boolean;
+  autofocus?: boolean;
 };
-export class Editor {
-  editor: AbstractNode;
-  cursor: Cursor;
-  options: EditorOptions;
-  isComposing: boolean = false;
-  root: Element | undefined;
-  elements: EditorElement;
-  inputTimer?: number;
-  debouncedPatch: typeof patchNode;
+
+const defaultOptions: EditorOptions = {
+  autofocus: true,
+  readonly: false,
+};
+
+export class EncreEditor {
+  editor: AbstractDom;
+  elm?: HTMLElement;
+  opts: EditorOptions;
+  $event: EncreEvent;
+  $cursor: EncreCursor;
   constructor(options: EditorOptions = {}) {
-    this.options = Object.assign({}, options);
-    this.elements = new EditorElement(options.classes);
+    this.opts = Object.assign({}, defaultOptions, options);
+    this.$cursor = new EncreCursor(this);
+    this.$event = new EncreEvent(this, this.$cursor);
     this.editor = this._createEditor();
-    this.cursor = new Cursor(this.editor);
-    this.debouncedPatch = debounce(patchNode);
   }
 
-  private patch(...args: Parameters<typeof patchNode>): Promise<void> {
-    return new Promise((resolve) => {
-      this.debouncedPatch(args[0], args[1], args[2], resolve);
-    });
+  get focusClassName() {
+    return 'ee--focused';
   }
 
-  mountRoot(rootElement: Element) {
-    if (!hasDocument()) throwError('No Document Specified');
-    rootElement.innerHTML = '';
-    rootElement.append(render(this.editor));
-    this.root = rootElement;
+  mount(rootElm: Element) {
+    const elm = render(this.editor);
+    this.elm = $.traverseAndFind(
+      elm as HTMLElement,
+      (el) => el.getAttribute('role') === 'editor'
+    ) as HTMLElement;
+    rootElm.innerHTML = '';
+    rootElm.append(elm);
+    if (!this.opts.readonly) {
+      this.opts.autofocus && this.$cursor.initRange(rootElm);
+    }
     return this;
   }
 
-  protected onKeydown(e: KeyboardEvent) {
-    if (this.isComposing) return;
-    switch (e.key) {
-      case 'Backspace': {
-        break;
-      }
-      case 'Enter': {
-        e.preventDefault();
-        break;
-      }
-      default: {
-        break;
-      }
+  _createEditor() {
+    let props = {};
+    const self = this;
+    if (!this.opts.readonly) {
+      props = {
+        onMousedown: () => self.$event.onMousedown(),
+        onMouseup: () => self.$event.onMouseup(),
+        onKeydown: (e: KeyboardEvent) => self.$event.onKeydown(e),
+        onKeyup: (e: KeyboardEvent) => self.$event.onKeyup(e),
+        onInput: () => self.$event.onInput(),
+        onCompositionstart: (e: CompositionEvent) =>
+          self.$event.onCompositionstart(e),
+        onCompositionend: () => self.$event.onCompositionend(),
+      };
     }
-  }
-  protected onKeyup() {
-    if (this.isComposing) return;
-  }
-
-  protected onInput(e: InputEvent) {
-    this._onInputUpdate(e);
-  }
-
-  protected onCompositionstart() {
-    this.isComposing = true;
-  }
-
-  protected onCompositionend(e: CompositionEvent) {
-    this.isComposing = false;
-    this._onInputUpdate(e);
-  }
-
-  private async _onInputUpdate(e: InputEvent | CompositionEvent) {
-    let cursorNode: TraverseReturn | null,
-      currentNode: AbstractNode | undefined,
-      parentNode: AbstractNode | undefined;
-    if (
-      this.isComposing ||
-      !(cursorNode = this.cursor.ancestorNode) ||
-      !(currentNode = cursorNode.current) ||
-      !(parentNode = cursorNode.parent)
-    ) {
-      return;
-    }
-    await this.patch(parentNode, currentNode, PATCH_FLAG.TEXT);
-    console.log(currentNode);
-  }
-
-  private _createEditor() {
-    const children: AbstractNodeChildren = [],
-      placeholder = this.options.placeholder,
-      self = this;
-    if (placeholder) {
-      if (isString(placeholder)) {
-        children.push(this.elements.p(placeholder));
-      } else {
-        children.push(placeholder);
-      }
-    } else {
-      children.push(this.elements.p('Please type something'));
-    }
-    return hyper(
-      'div',
-      {
-        class: 'editor',
-        onKeydown: self.onKeydown.bind(self),
-        onKeyup: self.onKeyup.bind(self),
-        onInput: self.onInput.bind(self),
-        onCompositionstart: self.onCompositionstart.bind(self),
-        onCompositionend: self.onCompositionend.bind(self),
-      },
-      children
-    );
+    // TODO
+    return createDefaultEditor(props, [
+      p(['Please Type ', b('Something '), 'Essential'], !this.opts.readonly),
+      p(['Please Type ', b('Something '), 'Essential'], !this.opts.readonly),
+    ]);
   }
 
   getJson() {
-    return cloneAbstractNode(this.editor).children;
-  }
-
-  setJson(jsonOrString: ANodeChildren) {
-    let node: AbstractNode;
-    if (isString(jsonOrString)) {
-      node = hyper(jsonOrString);
-    } else {
-      if (isANode(jsonOrString)) {
-        node = jsonOrString;
-      } else {
-        node = hyper(jsonOrString);
-      }
+    let editor: Element | null;
+    if (
+      !this.elm ||
+      !(editor = this.elm.firstElementChild) ||
+      !(editor.getAttribute('role') === 'editor')
+    ) {
+      return;
     }
-    if (this.root) {
-      this.editor.children = [node];
-      this.mountRoot(this.root);
+    for (let i = 0; i < editor.children.length; i++) {
+      const child = editor.children[i];
+      // TODO
     }
   }
 }

@@ -32,7 +32,9 @@ export function hasDocument() {
 export function hasWindow() {
   return typeof window !== 'undefined';
 }
-
+export function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
 export function hyphenate(str: string) {
   return str.replace(/\B([A-Z])/g, '-$1').toLowerCase();
 }

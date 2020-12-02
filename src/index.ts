@@ -1,9 +1,9 @@
-import { Editor, EditorOptions } from './editor';
+import { EncreEditor, EditorOptions } from './editor';
 import { EncreError, hasDocument, isString, throwError } from './helpers';
-export { createANode as h } from './node';
+import './theme/styles.less';
 export function createEditor(options: EditorOptions = {}) {
   const plugins = [];
-  const editor = new Editor(options);
+  const editor = new EncreEditor(options);
   const result = {
     use(plugin: any) {
       // TODO use some plugins
@@ -23,7 +23,7 @@ export function createEditor(options: EditorOptions = {}) {
       } else {
         rootElm = root;
       }
-      return editor.mountRoot(rootElm);
+      return editor.mount(rootElm);
     },
   };
 

@@ -1,8 +1,7 @@
 import {} from './index';
 declare global {
   interface EncreElement {
-    _uid?: number;
-    _is_abstract_node?: boolean;
+    _in_encre?: true;
   }
   interface HTMLElement extends EncreElement {}
   interface Node extends EncreElement {}

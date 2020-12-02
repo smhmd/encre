@@ -1,70 +1,111 @@
 import {
+  createDom as h,
+  AbstractDomChildrenOrAbstractDom,
   AbstractProps,
-  ANodeChildren,
-  createANode as h,
   mergeProps,
-} from './node';
-export const defaultBlockClasses = {
-  paragraph: 'editor-paragrpah',
-  heading: 'editor-heading',
-};
-export const defaultInlineClasses = {
-  strong: 'editor-strong',
-};
-export type BlockClasses = {
-  [T in keyof typeof defaultBlockClasses]: string;
-};
-export type InlineClasses = {
-  [T in keyof typeof defaultInlineClasses]: string;
-};
-export type ElementClasses = {
-  block: { [tag: string]: string } & Partial<BlockClasses>;
-  inline: { [tag: string]: string } & Partial<InlineClasses>;
-};
-export type ElementOptions = Partial<ElementClasses>;
-function genBlockTemplate(props: AbstractProps) {
-  return (children: ANodeChildren) =>
+} from './dom';
+import { isUndefined } from './helpers';
+export const enum EditorRoles {
+  CONTAINER = 'container',
+  EDITOR = 'editor',
+  EDITOR_BLOCK = 'block',
+}
+export function p(
+  children?: AbstractDomChildrenOrAbstractDom,
+  contenteditable = true
+) {
+  return createTemplateBlock(
+    'p',
+    { class: 'ee-paragraph' },
+    children,
+    contenteditable
+  );
+}
+
+export function b(children?: AbstractDomChildrenOrAbstractDom) {
+  return createTemplateInline(
+    'strong',
+    {
+      class: 'ee-strong',
+    },
+    children
+  );
+}
+
+export function createDefaultEditor(
+  props: AbstractProps = {},
+  children: AbstractDomChildrenOrAbstractDom = []
+) {
+  return h(
+    'div',
+    {
+      class: 'encre-editor__container',
+      role: EditorRoles.CONTAINER,
+    },
     h(
       'div',
       mergeProps(
         {
-          class: 'editor-block',
-          contenteditable: true,
+          class: 'encre-editor',
+          role: EditorRoles.EDITOR,
+          spellcheck: false,
+          tabindex: -1,
         },
         props
       ),
       children
-    );
+    )
+  );
 }
 
-export const defaultElementClasses = {
-  block: defaultBlockClasses,
-  inline: defaultInlineClasses,
-};
-export class EditorElement {
-  blockClasses: BlockClasses & { [key: string]: string };
-  inlineClasses: InlineClasses & { [key: string]: string };
-  constructor(classesOptions: ElementOptions = {}) {
-    this.blockClasses = Object.assign(
-      {},
-      defaultBlockClasses,
-      classesOptions.block
-    );
-    this.inlineClasses = Object.assign(
-      {},
-      defaultInlineClasses,
-      classesOptions.inline
-    );
-  }
-  get p() {
-    return genBlockTemplate({
-      class: this.blockClasses.paragraph,
-    });
-  }
+export function createTemplateBlock(
+  tag: string = 'div',
+  props: AbstractProps = {},
+  children?: AbstractDomChildrenOrAbstractDom,
+  contenteditable: boolean = true
+) {
+  const tempChildren = isUndefined(children) ? [] : children;
+  return h(
+    'div',
+    { class: 'ee-block', role: EditorRoles.EDITOR_BLOCK },
+    h(
+      'div',
+      {
+        class: 'ee-block__content',
+      },
+      h(
+        tag,
+        mergeProps(
+          {
+            contenteditable,
+          },
+          props
+        ),
+        tempChildren
+      )
+    )
+  );
+}
 
-  get h() {
-    return genBlockTemplate({
-      class: this.blockClasses.heading,
-    });
-  }
+export function createTemplateInline(
+  tag: string = 'span',
+  props: AbstractProps = {},
+  children?: AbstractDomChildrenOrAbstractDom
+) {
+  const tempChildren = isUndefined(children) ? [] : children;
+  return h(
+    tag,
+    mergeProps(
+      {
+        class: 'ee-inline',
+      },
+      props
+    ),
+    tempChildren
+  );
+}
+
+export const enum ToolElementType {
+  BLOCK = 1,
+  INLINE_BLOCK = 1 << 1,
 }
