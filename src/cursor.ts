@@ -1,6 +1,6 @@
 import { $ } from './dom';
-import { EncreEditor } from './editor';
-import { EditorRoles } from './elements';
+import { Editor } from './editor';
+import { EditorRoles } from './tool';
 import { isUndefined } from './helpers';
 
 function createGetParentTemplate(
@@ -14,11 +14,11 @@ function createGetParentTemplate(
   return parent;
 }
 
-// const getClosestParagrph = (node: Node) =>
-//   createGetParentTemplate(
-//     node,
-//     (parent) => parent.getAttribute('contenteditable') === 'true'
-//   );
+const getClosestParagrph = (node: Node) =>
+  createGetParentTemplate(
+    node,
+    (parent) => parent.getAttribute('contenteditable') === 'true'
+  );
 
 const getClosetBlock = (n: Node) =>
   createGetParentTemplate(
@@ -26,12 +26,27 @@ const getClosetBlock = (n: Node) =>
     (parent) => parent.getAttribute('role') === EditorRoles.EDITOR_BLOCK
   );
 
-export class EncreCursor {
+export class EditorCursor {
   range?: Range;
   cursoredElm?: HTMLElement;
-  $editor: EncreEditor;
-  constructor(editor: EncreEditor) {
+  $editor: Editor;
+  callbacks: Array<($cursor: this) => any>;
+  constructor(editor: Editor) {
     this.$editor = editor;
+    this.callbacks = [];
+  }
+
+  registerOnRangeCallbacks(cb?: ($cursor: this) => any) {
+    cb && this.callbacks.push(cb);
+  }
+
+  private execCallbacks() {
+    let cb: ($cursor: this) => any;
+    const self = this;
+    for (let i = 0; i < this.callbacks.length; i++) {
+      cb = this.callbacks[i];
+      cb && cb.call(null, self);
+    }
   }
 
   get collapsed() {
@@ -59,10 +74,12 @@ export class EncreCursor {
   saveRange(r?: Range | null) {
     if (r) {
       this.range = r;
+      this.execCallbacks();
       return;
     }
     let tempRange: Range | null;
     if ((tempRange = $.range)) {
+      this.execCallbacks();
       this.range = tempRange;
     }
   }

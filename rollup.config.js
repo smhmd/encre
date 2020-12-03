@@ -3,6 +3,9 @@ const ts = require('rollup-plugin-typescript2');
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const { resolve } = require('path');
 const { terser } = require('rollup-plugin-terser');
+const postcss = require('rollup-plugin-postcss');
+const autoprefixer = require('autoprefixer');
+const cssnano = require('cssnano');
 
 function genRollupObj(format = 'es') {
   const plugin = format === 'es' ? [] : [terser()];
@@ -27,6 +30,21 @@ function genRollupObj(format = 'es') {
             'playground/*',
           ],
         },
+      }),
+      postcss({
+        extract: format === 'es' && resolve(__dirname, 'dist/' + pkg.name + '.min.css'),
+        inject: false,
+        plugins: [
+          autoprefixer(),
+          cssnano({
+            preset: [
+              'default',
+              {
+                discardDuplicates: true,
+              },
+            ],
+          }),
+        ],
       }),
       ...plugin,
     ],

@@ -43,11 +43,22 @@ export const $ = {
     if (!hasDocument()) throw new EncreError('No Document Specified');
     return document.createRange();
   },
-  getFirstLeftNode(root: Element) {
+  execCommand(commandName: string, value?: string) {
+    if (!hasDocument()) throw new EncreError('No Document Specified');
+    return (
+      document.queryCommandSupported(commandName) &&
+      document.execCommand(commandName, false, value)
+    );
+  },
+  checkCommandState(commandName: string) {
+    if (!hasDocument()) throw new EncreError('No Document Specified');
+    return document.queryCommandState(commandName);
+  },
+  getFirstLeftNode(root: Element | Node | DocumentFragment) {
     if (!root.firstChild) return root;
     let first = root.firstChild;
-    while(first.firstChild) {
-      first = first.firstChild
+    while (first.firstChild) {
+      first = first.firstChild;
     }
     return first;
   },
@@ -396,4 +407,4 @@ function html(elm: FragOrTextOrElement) {
   return result;
 }
 
-export { render, createDom, mergeProps, html };
+export { render, createDom, mergeProps, html, isAbstractDom };

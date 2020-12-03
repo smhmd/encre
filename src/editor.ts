@@ -1,32 +1,51 @@
-import { EncreCursor } from './cursor';
-import { AbstractDom, render, $ } from './dom';
-import { b, createDefaultEditor, p } from './elements';
-import { EncreEvent } from './events';
-export type EditorOptions = { [prop: string]: any } & {
-  readonly?: boolean;
-  autofocus?: boolean;
-};
+import { EditorCursor } from './cursor';
+import { AbstractDom, render, $, createDom as h } from './dom';
+import { EditorEvent } from './events';
+import {
+  defaultElementsClasses,
+  EditorElements,
+  ElementsOptions,
+  IEditorTool,
+  ToolConstructor,
+} from './tool';
 
-const defaultOptions: EditorOptions = {
+type ToolObject = {
+  tool: ToolConstructor;
+  bindDOMFunction: () => Element | null;
+  activateClass: string;
+};
+export type ToolArray = ToolObject[];
+
+const defaultOptions = {
   autofocus: true,
   readonly: false,
+  classes: defaultElementsClasses,
 };
 
-export class EncreEditor {
-  editor: AbstractDom;
+export type EditorOptions = { [prop: string]: any } & {
+  autofocus?: boolean;
+  readonly?: boolean;
+  classes?: ElementsOptions;
+};
+
+export class Editor {
   elm?: HTMLElement;
   opts: EditorOptions;
-  $event: EncreEvent;
-  $cursor: EncreCursor;
+  readonly $event: EditorEvent;
+  readonly $cursor: EditorCursor;
+  readonly $elements: EditorElements;
+  readonly editor: AbstractDom;
+  tools: IEditorTool[] = [];
   constructor(options: EditorOptions = {}) {
     this.opts = Object.assign({}, defaultOptions, options);
-    this.$cursor = new EncreCursor(this);
-    this.$event = new EncreEvent(this, this.$cursor);
+    this.$elements = new EditorElements(options.classes);
+    this.$cursor = new EditorCursor(this);
+    this.$event = new EditorEvent(this, this.$cursor);
     this.editor = this._createEditor();
   }
 
   get focusClassName() {
-    return 'ee--focused';
+    return this.$elements.classes.focus;
   }
 
   mount(rootElm: Element) {
@@ -39,11 +58,14 @@ export class EncreEditor {
     rootElm.append(elm);
     if (!this.opts.readonly) {
       this.opts.autofocus && this.$cursor.initRange(rootElm);
+      this.tools.forEach((t) => {
+        t.bind()
+      })
     }
     return this;
   }
 
-  _createEditor() {
+  private _createEditor() {
     let props = {};
     const self = this;
     if (!this.opts.readonly) {
@@ -59,9 +81,8 @@ export class EncreEditor {
       };
     }
     // TODO
-    return createDefaultEditor(props, [
-      p(['Please Type ', b('Something '), 'Essential'], !this.opts.readonly),
-      p(['Please Type ', b('Something '), 'Essential'], !this.opts.readonly),
+    return this.$elements.createEditorElement(props, [
+      this.$elements.createParagraph('Please Type Something !!'),
     ]);
   }
 
@@ -77,6 +98,19 @@ export class EncreEditor {
     for (let i = 0; i < editor.children.length; i++) {
       const child = editor.children[i];
       // TODO
+    }
+  }
+
+  register(tools: ToolArray) {
+    let tool: IEditorTool;
+    for (let i = 0; i < tools.length; i++) {
+      tool = new tools[i].tool(
+        this.$cursor,
+        this.$elements,
+        tools[i].bindDOMFunction,
+        tools[i].activateClass
+      );
+      this.tools.push(tool);
     }
   }
 }

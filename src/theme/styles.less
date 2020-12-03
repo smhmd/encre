@@ -7,21 +7,22 @@
   display: block;
   width: 100%;
   height: 100%;
-  & [contenteditable*='true'] {
+  [contenteditable*='true'] {
     border: 0;
     outline: none;
+    line-height: 1.5;
+  }
+
+  p[contenteditable*='true'] {
+    padding: 4px 0;
+    margin: 0;
   }
 }
 
-.ee-block {
+.encre-block {
   display: block;
   &__content {
     display: block;
     margin: 0 16px;
   }
-}
-
-.ee-paragraph {
-  padding: 4px 0;
-  margin: 0;
 }

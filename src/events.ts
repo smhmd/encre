@@ -1,27 +1,29 @@
-import { EncreCursor } from './cursor';
-import { $, render } from './dom';
-import { p } from './elements';
-import { EncreEditor } from './editor';
+import { EditorCursor } from './cursor';
+import { $, createDom as h, render } from './dom';
+import { Editor } from './editor';
 import { isTextNode } from './helpers';
+import { EditorElements } from './tool';
 
 const defaultEventOptions = {
   tabWidth: 2,
 };
 
 export type EventOptions = Partial<typeof defaultEventOptions>;
-export class EncreEvent {
+export class EditorEvent {
   isComposing: boolean;
-  $cursor: EncreCursor;
-  $editor: EncreEditor;
+  $cursor: EditorCursor;
+  $editor: Editor;
+  $elements: EditorElements;
   opts: typeof defaultEventOptions;
   constructor(
-    editor: EncreEditor,
-    cursor: EncreCursor,
+    editor: Editor,
+    cursor: EditorCursor,
     options: EventOptions = {}
   ) {
     this.isComposing = false;
     this.$cursor = cursor;
     this.$editor = editor;
+    this.$elements = this.$editor.$elements;
     this.opts = Object.assign({}, defaultEventOptions, options);
   }
   onAfterUpdate() {
@@ -34,7 +36,7 @@ export class EncreEvent {
     if ($.isCursoring) {
       if (selection && (anchorNode = selection.anchorNode)) {
         anchorOffset = selection.anchorOffset;
-        this.$cursor.range = $.setCursor(anchorNode, anchorOffset);
+        this.$cursor.saveRange($.setCursor(anchorNode, anchorOffset));
       }
     } else if ($.isOnRange) {
       this.$cursor.saveRange();
@@ -129,7 +131,7 @@ export class EncreEvent {
     const cloneContents = newRange.cloneContents();
     // delete chosen contents
     newRange.deleteContents();
-    const container = render(p());
+    const container = render(this.$elements.createParagraph());
     // append cloneContents to new container
     $.setLastRightElement(container as Element, cloneContents);
     let nextSibling: Element | null;
