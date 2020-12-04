@@ -40,7 +40,7 @@ export class Editor {
     this.opts = Object.assign({}, defaultOptions, options);
     this.$elements = new EditorElements(options.classes);
     this.$cursor = new EditorCursor(this);
-    this.$event = new EditorEvent(this, this.$cursor);
+    this.$event = new EditorEvent(this);
     this.editor = this._createEditor();
   }
 
@@ -59,8 +59,8 @@ export class Editor {
     if (!this.opts.readonly) {
       this.opts.autofocus && this.$cursor.initRange(rootElm);
       this.tools.forEach((t) => {
-        t.bind()
-      })
+        t.bind();
+      });
     }
     return this;
   }
@@ -82,7 +82,9 @@ export class Editor {
     }
     // TODO
     return this.$elements.createEditorElement(props, [
-      this.$elements.createParagraph('Please Type Something !!'),
+      this.$elements.createTemplateBlock(
+        this.$elements.createParagraph('Please Type Something !!')
+      ),
     ]);
   }
 
@@ -103,10 +105,10 @@ export class Editor {
 
   register(tools: ToolArray) {
     let tool: IEditorTool;
+    const self = this;
     for (let i = 0; i < tools.length; i++) {
       tool = new tools[i].tool(
-        this.$cursor,
-        this.$elements,
+        self,
         tools[i].bindDOMFunction,
         tools[i].activateClass
       );

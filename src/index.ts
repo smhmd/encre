@@ -2,7 +2,16 @@ import { Editor, EditorOptions, ToolArray } from './editor';
 import { EncreError, hasDocument, isString, throwError } from './helpers';
 import './theme/styles.less';
 import { ToolConstructor } from './tool';
-export { BoldTool, ItalicTool, UnderlineTool, StrikeThroughTool } from './tool';
+export {
+  BoldTool,
+  ItalicTool,
+  UnderlineTool,
+  StrikeThroughTool,
+  Heading1Tool,
+  ParagraphTool,
+  OrderedList,
+  UnorderedList
+} from './tool';
 export function createEditor(options: EditorOptions = {}) {
   const tools: ToolArray = [];
   const editor = new Editor(options);

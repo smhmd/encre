@@ -1,8 +1,8 @@
 import { EditorCursor } from './cursor';
 import { $, createDom as h, render } from './dom';
 import { Editor } from './editor';
-import { isTextNode } from './helpers';
-import { EditorElements } from './tool';
+import { isTextNode, isUndefined } from './helpers';
+import { EditorElements, IEditorTool, ToolEnum } from './tool';
 
 const defaultEventOptions = {
   tabWidth: 2,
@@ -14,16 +14,14 @@ export class EditorEvent {
   $cursor: EditorCursor;
   $editor: Editor;
   $elements: EditorElements;
+  $tools: IEditorTool[];
   opts: typeof defaultEventOptions;
-  constructor(
-    editor: Editor,
-    cursor: EditorCursor,
-    options: EventOptions = {}
-  ) {
+  constructor(editor: Editor, options: EventOptions = {}) {
     this.isComposing = false;
-    this.$cursor = cursor;
     this.$editor = editor;
+    this.$cursor = this.$editor.$cursor;
     this.$elements = this.$editor.$elements;
+    this.$tools = this.$editor.tools;
     this.opts = Object.assign({}, defaultEventOptions, options);
   }
   onAfterUpdate() {
@@ -105,35 +103,20 @@ export class EditorEvent {
     this.$cursor.saveRange(range);
   }
 
-  /**
-   * on Enter key down
-   */
-  private _onEnter() {
+  insertNewParagraph(contents: DocumentFragment) {
     let editorElm: HTMLElement | undefined,
       cursoredElm: HTMLElement | undefined;
     if (
       !(editorElm = this.$editor.elm) ||
-      !this.$cursor.range ||
       !(cursoredElm = this.$cursor.cursoredElm)
     ) {
       return;
     }
-    const { startContainer, startOffset } = this.$cursor.range;
-    const newRange = $.createRange();
-    if (!this.$cursor.collapsed) {
-      // range something
-      this.$cursor.range.deleteContents();
-    }
-    // select range to the last of elements
-    const lastNode = $.getLastRightNode(this.$cursor.cursoredElm);
-    newRange.setStart(startContainer, startOffset);
-    newRange.setEnd(lastNode, lastNode.textContent?.length || 0);
-    const cloneContents = newRange.cloneContents();
-    // delete chosen contents
-    newRange.deleteContents();
-    const container = render(this.$elements.createParagraph());
+    const container = render(
+      this.$elements.createTemplateBlock(this.$elements.createParagraph())
+    );
     // append cloneContents to new container
-    $.setLastRightElement(container as Element, cloneContents);
+    $.setLastRightElement(container as Element, contents);
     let nextSibling: Element | null;
     // appen new paragraph
     if ((nextSibling = cursoredElm.nextElementSibling)) {
@@ -147,6 +130,47 @@ export class EditorEvent {
     );
     // set focus class to new line
     this.$cursor.saveCursoredElm();
+  }
+
+  copyRawContents() {
+    let cursoredElm: HTMLElement | undefined;
+    if (!this.$cursor.range || !(cursoredElm = this.$cursor.cursoredElm)) {
+      return;
+    }
+    const { startContainer, startOffset, endContainer } = this.$cursor.range;
+    const newRange = $.createRange();
+    if (!this.$cursor.collapsed) {
+      // range something
+      this.$cursor.range.deleteContents();
+    }
+    // select range to the last of elements
+    if (!endContainer.parentElement) return;
+    const lastNode = $.getLastRightNode(endContainer.parentElement);
+    newRange.setStart(startContainer, startOffset);
+    newRange.setEnd(lastNode, lastNode.textContent?.length || 0);
+    const cloneContents = newRange.cloneContents();
+    return { cloneContents, newRange };
+  }
+  /**
+   * on Enter key down
+   */
+  private _onEnter() {
+    const copiedResult = this.copyRawContents();
+    if (isUndefined(copiedResult)) return;
+    const { cloneContents, newRange } = copiedResult;
+    let tool: IEditorTool, canEnter: boolean;
+    // interupt enter with block tools
+    for (let i = 0; i < this.$tools.length; i++) {
+      tool = this.$tools[i];
+      if (tool.type !== ToolEnum.BLOCK) continue;
+      canEnter = !!tool.onEnter(cloneContents, newRange);
+      if (canEnter) {
+        return;
+      }
+    }
+    // insert default new paragraph
+    this.insertNewParagraph(cloneContents);
+    newRange.deleteContents();
   }
 
   private _onBackspace() {

@@ -3,25 +3,14 @@ import { Editor } from './editor';
 import { EditorRoles } from './tool';
 import { isUndefined } from './helpers';
 
-function createGetParentTemplate(
-  n: Node | HTMLElement,
-  cb: (parent: HTMLElement) => boolean = (...args: any) => false
-) {
-  let parent = n.parentElement;
-  while (parent && !cb.call(null, parent)) {
-    parent = parent.parentElement;
-  }
-  return parent;
-}
-
 const getClosestParagrph = (node: Node) =>
-  createGetParentTemplate(
+  $.createGetParentTemplate(
     node,
     (parent) => parent.getAttribute('contenteditable') === 'true'
   );
 
 const getClosetBlock = (n: Node) =>
-  createGetParentTemplate(
+  $.createGetParentTemplate(
     n,
     (parent) => parent.getAttribute('role') === EditorRoles.EDITOR_BLOCK
   );

@@ -57,7 +57,7 @@ export const $ = {
   getFirstLeftNode(root: Element | Node | DocumentFragment) {
     if (!root.firstChild) return root;
     let first = root.firstChild;
-    while (first.firstChild) {
+    while (first && first.firstChild) {
       first = first.firstChild;
     }
     return first;
@@ -65,8 +65,16 @@ export const $ = {
   getLastRightNode(root: Element) {
     if (!root.lastChild) return root;
     let last = root.lastChild;
-    while (last.lastChild) {
+    while (last && last.lastChild) {
       last = last.lastChild;
+    }
+    return last;
+  },
+  getLastRightElement(root: Element) {
+    if (!root.lastElementChild) return root;
+    let last = root.lastElementChild;
+    while (last && last.lastElementChild) {
+      last = last.lastElementChild;
     }
     return last;
   },
@@ -112,6 +120,16 @@ export const $ = {
     }
     return;
   },
+  createGetParentTemplate(
+    n: Node | HTMLElement,
+    cb: (parent: HTMLElement) => boolean = (...args: any) => false
+  ) {
+    let parent = n.parentElement;
+    while (parent && !cb.call(null, parent)) {
+      parent = parent.parentElement;
+    }
+    return parent;
+  }
 };
 
 export type AbstractProps = { [prop: string]: any } & {
