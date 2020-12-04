@@ -8,6 +8,10 @@ import {
   ParagraphTool,
   OrderedList,
   UnorderedList,
+  BlockquoteTool,
+  JustifyCenterTool,
+  JustifyRightTool,
+  JustifyLeftTool,
 } from '/src/index';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
@@ -15,17 +19,17 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
   createEditor({
     autofocus: false,
   })
-    .use(BoldTool, () => document.querySelector('#bold'), 'active')
-    .use(ItalicTool, () => document.querySelector('#italic'), 'active')
-    .use(UnderlineTool, () => document.querySelector('#underline'), 'active')
-    .use(
-      StrikeThroughTool,
-      () => document.querySelector('#strike-through'),
-      'active'
-    )
-    .use(Heading1Tool, () => document.querySelector('#heading'), 'active')
-    .use(ParagraphTool, () => document.querySelector('#paragraph'), 'active')
-    .use(OrderedList, () => document.querySelector('#ol'), 'active')
-    .use(UnorderedList, () => document.querySelector('#ul'), 'active')
+    .use(BoldTool, () => '#bold', 'active')
+    .use(ItalicTool, () => '#italic', 'active')
+    .use(UnderlineTool, () => '#underline', 'active')
+    .use(StrikeThroughTool, () => '#strike-through', 'active')
+    .use(Heading1Tool, () => '#heading', 'active')
+    .use(ParagraphTool, () => '#paragraph', 'active')
+    .use(OrderedList, () => '#ol', 'active')
+    .use(UnorderedList, () => '#ul', 'active')
+    .use(BlockquoteTool, () => '#blockquote', 'active')
+    .use(JustifyLeftTool, () => '#align-left', 'active')
+    .use(JustifyCenterTool, () => '#align-center', 'active')
+    .use(JustifyRightTool, () => '#align-right', 'active')
     .mount('#content');
 })();

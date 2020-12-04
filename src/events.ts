@@ -26,6 +26,7 @@ export class EditorEvent {
   }
   onAfterUpdate() {
     this.$cursor.saveCursoredElm();
+    console.log(this.$cursor.cursoredElm);
   }
 
   onBeforeUpdate() {
@@ -88,7 +89,7 @@ export class EditorEvent {
     } = this.$cursor.range;
     if (!isTextNode(startContainer) || !isTextNode(endContainer)) return;
     const tabLength = this.opts.tabWidth || defaultEventOptions.tabWidth;
-    const tabWord = '\u00A0'.repeat(tabLength);
+    const tabWord = $.spaceUnicode.repeat(tabLength);
     if (this.$cursor.rangeSameNode) {
       // range same Node
       startContainer.replaceData(startOffset, endOffset - startOffset, tabWord);

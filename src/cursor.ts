@@ -32,8 +32,8 @@ export class EditorCursor {
   private execCallbacks() {
     let cb: ($cursor: this) => any;
     const self = this;
-    for (let i = 0; i < this.callbacks.length; i++) {
-      cb = this.callbacks[i];
+    for (let i = 0; i < self.callbacks.length; i++) {
+      cb = self.callbacks[i];
       cb && cb.call(null, self);
     }
   }
@@ -68,7 +68,6 @@ export class EditorCursor {
     }
     let tempRange: Range | null;
     if ((tempRange = $.range)) {
-      this.execCallbacks();
       this.range = tempRange;
     }
   }
@@ -88,6 +87,8 @@ export class EditorCursor {
       this.cursoredElm = cursoringElm;
       // add focused class to new cursoring elment
       this.cursoredElm.classList.add(this.$editor.focusClassName);
+
+      this.execCallbacks();
     }
   }
 }

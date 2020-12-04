@@ -7,6 +7,13 @@ const postcss = require('rollup-plugin-postcss');
 const autoprefixer = require('autoprefixer');
 const cssnano = require('cssnano');
 
+const banner = `
+/**
+ * ${pkg.name} v${pkg.version}
+ * (c) ${new Date().getFullYear()} Zhang Ziheng
+ * Released under the ${pkg.license} License
+ */
+`.trim();
 function genRollupObj(format = 'es') {
   const plugin = format === 'es' ? [] : [terser()];
   return {
@@ -18,7 +25,7 @@ function genRollupObj(format = 'es') {
         tsconfig: resolve(__dirname, 'tsconfig.json'),
         tsconfigOverride: {
           compilerOptions: {
-            target: format && format !== 'cjs' ? 'ESNEXT' : 'ES5',
+            // target: format && format !== 'cjs' ? 'ESNEXT' : 'ES5',
             declaration: format && format === 'es',
             rootDir: resolve(__dirname, 'src'),
           },
@@ -32,7 +39,9 @@ function genRollupObj(format = 'es') {
         },
       }),
       postcss({
-        extract: format === 'es' && resolve(__dirname, 'dist/' + pkg.name + '.min.css'),
+        extract:
+          format === 'es' &&
+          resolve(__dirname, 'dist/' + pkg.name + '.min.css'),
         inject: false,
         plugins: [
           autoprefixer(),
@@ -51,6 +60,7 @@ function genRollupObj(format = 'es') {
     output: {
       dir: resolve(__dirname, 'dist'),
       format,
+      banner: format === 'es' ? banner : '',
       name: pkg.name,
       entryFileNames: pkg.name + '.' + format + '.bundle.js',
       extend: true,

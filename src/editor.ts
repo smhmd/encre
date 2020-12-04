@@ -2,6 +2,7 @@ import { EditorCursor } from './cursor';
 import { AbstractDom, render, $, createDom as h } from './dom';
 import { EditorEvent } from './events';
 import {
+  BindDOMType,
   defaultElementsClasses,
   EditorElements,
   ElementsOptions,
@@ -11,7 +12,7 @@ import {
 
 type ToolObject = {
   tool: ToolConstructor;
-  bindDOMFunction: () => Element | null;
+  bindDOMFunction: () => BindDOMType;
   activateClass: string;
 };
 export type ToolArray = ToolObject[];

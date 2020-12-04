@@ -30,6 +30,10 @@ export const $ = {
     if (!hasDocument()) throw new EncreError('No Document Specified');
     return document.createDocumentFragment();
   },
+  seletor(str: string) {
+    if (!hasDocument()) throw new EncreError('No Document Specified');
+    return document.querySelector(str);
+  },
   get selection() {
     if (!hasWindow()) throw new EncreError('No Window Specified');
     return window.getSelection();
@@ -129,7 +133,10 @@ export const $ = {
       parent = parent.parentElement;
     }
     return parent;
-  }
+  },
+  get spaceUnicode() {
+    return '\u00A0';
+  },
 };
 
 export type AbstractProps = { [prop: string]: any } & {
@@ -205,8 +212,7 @@ function createAbstractFragment(
   };
 }
 
-function _resolveProps(n: AbstractDom, elm: HTMLElement) {
-  const props = n.props;
+function _resolveProps(props: AbstractProps, elm: HTMLElement) {
   elm._in_encre = true;
   for (let key in props) {
     switch (key) {
@@ -258,7 +264,7 @@ function _renderDom(n: AbstractDom) {
   } else {
     element = $.createElement(n.tag);
     // resolve props, such as class style
-    _resolveProps(n, element);
+    _resolveProps(n.props, element);
   }
   return element;
 }
@@ -425,4 +431,4 @@ function html(elm: FragOrTextOrElement) {
   return result;
 }
 
-export { render, createDom, mergeProps, html, isAbstractDom };
+export { render, createDom, mergeProps, html, isAbstractDom, _resolveProps };
