@@ -63,13 +63,13 @@ export class EditorCursor {
   saveRange(r?: Range | null) {
     if (r) {
       this.range = r;
-      this.execCallbacks();
+      // this.execCallbacks();
       return;
     }
     let tempRange: Range | null;
     if ((tempRange = $.range)) {
-      this.execCallbacks();
       this.range = tempRange;
+      // this.execCallbacks();
     }
   }
 
@@ -88,8 +88,7 @@ export class EditorCursor {
       this.cursoredElm = cursoringElm;
       // add focused class to new cursoring elment
       this.cursoredElm.classList.add(this.$editor.focusClassName);
-
-      this.execCallbacks();
     }
+    this.execCallbacks();
   }
 }

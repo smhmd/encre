@@ -1,7 +1,6 @@
 import { Editor, EditorOptions, ToolArray } from './editor';
 import { EncreError, hasDocument, isString, throwError } from './helpers';
-import './theme/styles.less';
-import { BindDOMType, IEditorTool, ToolConstructor } from './tool';
+import { IEditorTool, ToolConstructor } from './tool';
 export * from './tools';
 export type ExtractToolConstructor<T> = T extends new (
   edtior: Editor,

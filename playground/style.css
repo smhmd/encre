@@ -17,25 +17,42 @@ html {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: #f8f7fa;
 }
 
 .header {
   width: 100%;
-  height: 128px;
+  height: 256px;
   flex: 0 1 auto;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
 }
+.header button {
+  background-color: #32e0c4;
+  cursor: pointer;
+  outline: none;
+  color: white;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  margin: 8px 0;
+  font-size: 16px;
+}
 .content__container {
+  padding-top: 1rem;
   flex: 1 0 auto;
-  height: 100%;
 }
 .content {
-  max-width: 576px;
+  border-radius: 8px;
+  max-width: 768px;
   margin-left: auto;
   margin-right: auto;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
 }
 
 .toolbar {
@@ -44,6 +61,7 @@ html {
   height: 48px;
   padding: 6px 0;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .toolbar-btn {
@@ -60,11 +78,13 @@ html {
 }
 
 .toolbar-btn.active,
-.toolbar-btn:hover  {
+.toolbar-btn:hover {
   background-color: #dfdfdf;
 }
 
-
 #content {
-  height: 100%;
+  flex: 1;
+}
+#json-container {
+  flex: 0 1 auto;
 }

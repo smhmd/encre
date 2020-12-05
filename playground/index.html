@@ -5,16 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Playground</title>
-  <link rel="stylesheet" type="text/css" href="/style.css" />
 </head>
-
 <body>
   <div id="app">
     <div class="header">
       <h1>Encre Editor</h1>
+      <button>Get Started</button>
     </div>
     <div class="content__container">
       <div class="content">
+        <!-- toolbar -->
         <div class="toolbar">
           <button id="bold" class="toolbar-btn">
             <i class="fa fa-bold"></i>
@@ -57,7 +57,9 @@
           </button>
           <input id="img-input" type="file" accept="image/*" style="display: none;" />
         </div>
+        <!-- editor content -->
         <div id="content"></div>
+        <div id="json-container"></div>
       </div>
     </div>
   </div>

@@ -6,14 +6,17 @@ import {
   AbstractDomChildrenOrAbstractDom,
   mergeProps,
   _resolveProps,
+  AbstractDom,
+  render,
 } from './dom';
 import { Editor } from './editor';
 import { EditorEvent } from './events';
-import { isString } from './helpers';
+import { isString, isUndefined } from './helpers';
 export const enum EditorRoles {
   CONTAINER = 'container',
   EDITOR = 'editor',
   EDITOR_BLOCK = 'block',
+  EDITOR_ZONE = 'zone',
 }
 export const enum ToolEnum {
   INLINE = 1,
@@ -48,8 +51,10 @@ export type ElementsOptions = Partial<typeof defaultElementsClasses>;
 
 export class EditorElements {
   classes: typeof defaultElementsClasses;
-  constructor(options: ElementsOptions = {}) {
+  readonly editable: boolean;
+  constructor(editor: Editor, options: ElementsOptions = {}) {
     this.classes = Object.assign({}, defaultElementsClasses, options);
+    this.editable = !editor.opts.readonly;
   }
 
   createEditorElement(
@@ -78,9 +83,17 @@ export class EditorElements {
       ]
     );
   }
+  createTemplateBlock(children: Node): HTMLElement;
+  createTemplateBlock(children?: AbstractDomChildrenOrAbstractDom): AbstractDom;
+  createTemplateBlock(...args: any) {
+    let children: any;
+    if (isUndefined(args[0]) || args[0] instanceof Node) {
+      children = [];
+    } else {
+      children = args[0];
+    }
 
-  createTemplateBlock(children: AbstractDomChildrenOrAbstractDom = []) {
-    return h(
+    const obj = h(
       'div',
       {
         class: `${this.classes.block}`,
@@ -96,14 +109,30 @@ export class EditorElements {
         ),
       ]
     );
+    if (args[0] instanceof Node) {
+      const renderedElm = render(obj) as Element;
+      const lastElm = $.getLastRightElement(renderedElm);
+      lastElm.append(args[0]);
+      return renderedElm;
+    }
+
+    return obj;
   }
   createParagraph(children: AbstractDomChildrenOrAbstractDom = []) {
+    const editableProps = this.editable
+      ? {
+          contenteditable: 'true',
+        }
+      : {};
     return h(
       'p',
-      {
-        class: this.classes.paragraph,
-        contenteditable: true,
-      },
+      mergeProps(
+        {
+          class: this.classes.paragraph,
+          role: EditorRoles.EDITOR_ZONE,
+        },
+        editableProps
+      ),
       children
     );
   }

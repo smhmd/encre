@@ -7,7 +7,7 @@ import {
   mergeProps,
   _resolveProps,
 } from '../dom';
-import { ToolTemplate, IEditorTool, BindDOMType } from '../tool';
+import { ToolTemplate, IEditorTool, EditorRoles } from '../tool';
 
 export type DOMFuncType = (
   ctx: ToolTemplate
@@ -29,7 +29,7 @@ function getFirstEditableElement(contentElm: Element | null) {
   // get editable element
   for (let i = 0; i < contentElm.children.length; i++) {
     child = contentElm.children.item(i) as HTMLElement;
-    if (child && child.getAttribute('contenteditable') === 'true') {
+    if (child && child.getAttribute('role') === EditorRoles.EDITOR_ZONE) {
       contenteditableElm = child;
       break;
     }
@@ -70,8 +70,15 @@ export function createBlockTool(
       if (justChangeProps) {
         if (isAbstractDom(makedDom)) {
           const props = makedDom.props;
+          const editableProps = this.$elements.editable
+            ? {
+                contenteditable: true,
+              }
+            : {};
           _resolveProps(
-            mergeProps(props, { contenteditable: true }),
+            mergeProps(props, editableProps, {
+              role: EditorRoles.EDITOR_ZONE,
+            }),
             contenteditableElm
           );
         }
@@ -83,7 +90,12 @@ export function createBlockTool(
         // render abstract node
         makedDom = render(makedDom) as Element;
       }
-      makedDom.setAttribute('contenteditable', 'true');
+      if (this.$elements.editable) {
+        makedDom.setAttribute('contenteditable', 'true');
+      } else {
+        makedDom.removeAttribute('contenteditable');
+      }
+      makedDom.setAttribute('role', EditorRoles.EDITOR_ZONE);
       // append data text to last right child
       lastElm = $.getLastRightElement(makedDom);
       lastElm.append(data);

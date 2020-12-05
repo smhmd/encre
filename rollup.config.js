@@ -1,11 +1,7 @@
 const pkg = require('./package.json');
 const ts = require('rollup-plugin-typescript2');
-const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const { resolve } = require('path');
 const { terser } = require('rollup-plugin-terser');
-const postcss = require('rollup-plugin-postcss');
-const autoprefixer = require('autoprefixer');
-const cssnano = require('cssnano');
 
 const banner = `
 /**
@@ -20,7 +16,6 @@ function genRollupObj(format = 'es') {
     input: resolve(__dirname, 'src/index.ts'),
     external: [...Object.keys(pkg.dependencies || {})],
     plugins: [
-      nodeResolve(),
       ts({
         tsconfig: resolve(__dirname, 'tsconfig.json'),
         tsconfigOverride: {
@@ -37,23 +32,6 @@ function genRollupObj(format = 'es') {
             'playground/*',
           ],
         },
-      }),
-      postcss({
-        extract:
-          format === 'es' &&
-          resolve(__dirname, 'dist/' + pkg.name + '.min.css'),
-        inject: false,
-        plugins: [
-          autoprefixer(),
-          cssnano({
-            preset: [
-              'default',
-              {
-                discardDuplicates: true,
-              },
-            ],
-          }),
-        ],
       }),
       ...plugin,
     ],

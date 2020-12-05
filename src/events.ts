@@ -36,7 +36,7 @@ export class EditorEvent {
         anchorOffset = selection.anchorOffset;
         this.$cursor.saveRange($.setCursor(anchorNode, anchorOffset));
       }
-    } else if ($.isOnRange) {
+    } else {
       this.$cursor.saveRange();
     }
   }

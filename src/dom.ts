@@ -10,10 +10,15 @@ import {
   isUndefined,
   hasWindow,
 } from './helpers';
+import { EditorRoles } from './tool';
 const enum AbstractDomType {
   FRAGMENT = 1,
   NODES = 1 << 1,
   TEXT = 1 << 2,
+  BLOCK = 1 << 3,
+}
+export function isAbstractBlock(type: AbstractDomType) {
+  return type === AbstractDomType.BLOCK;
 }
 export const $ = {
   createElement(tag: string) {
@@ -152,7 +157,7 @@ export type AbstractDom = {
   tag: string;
   props: AbstractProps;
   children: AbstractDomChildren;
-  _is_abstract: true;
+  _is_abstract: boolean;
   type: AbstractDomType;
 };
 function isAbstractDom(obj: Record<string, any>): obj is AbstractDom {
@@ -432,3 +437,41 @@ function html(elm: FragOrTextOrElement) {
 }
 
 export { render, createDom, mergeProps, html, isAbstractDom, _resolveProps };
+const IncludedAttrs = ['class', 'style'];
+export function serialize(editor: Element) {
+  const stack: Array<Element> = [];
+  const result: AbstractDom[] = [];
+  if (editor.childElementCount > 0 && editor.firstElementChild) {
+    stack.push(editor.firstElementChild);
+  }
+  let blockElm: Element | null | undefined,
+    editableElm: Element | null | undefined;
+  while (stack.length > 0) {
+    if (!(blockElm = stack.pop())) break;
+    editableElm = $.traverseAndFind(
+      blockElm,
+      (elm) => elm.getAttribute('role') === EditorRoles.EDITOR_ZONE
+    );
+    if (!editableElm) break;
+    let attr: Attr;
+    const tempProps: Record<string, any> = {};
+    for (let i = 0; i < editableElm.attributes.length; i++) {
+      attr = editableElm.attributes[i];
+      if (IncludedAttrs.includes(attr.name)) {
+        tempProps[attr.name] = attr.value;
+      }
+    }
+    result.push({
+      tag: editableElm.tagName.toLowerCase(),
+      children: editableElm.innerHTML,
+      props: tempProps,
+      _is_abstract: false,
+      type: AbstractDomType.BLOCK,
+    });
+
+    if (blockElm.nextElementSibling) {
+      stack.push(blockElm.nextElementSibling);
+    }
+  }
+  return result;
+}

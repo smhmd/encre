@@ -14,7 +14,9 @@ import {
   JustifyLeftTool,
   ImageTool,
 } from '/src/index';
+import '/src/theme/styles.less';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import './style.css';
 
 (function () {
   function bindImgButtonFunc(exec: (str: string) => any) {
@@ -52,9 +54,10 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
       );
     }
   }
-
-  createEditor({
+  const jsonContainer = document.querySelector('#json-container');
+  const editor = createEditor({
     autofocus: false,
+    placeholder: '请输入文字。',
   })
     .use(BoldTool, () => '#bold', 'active')
     .use(ItalicTool, () => '#italic', 'active')
@@ -70,4 +73,9 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
     .use(JustifyRightTool, () => '#align-right', 'active')
     .use(ImageTool, bindImgButtonFunc)
     .mount('#content');
+  editor.onRangeSaved(() => {
+    if (jsonContainer) {
+      jsonContainer.innerHTML = JSON.stringify(editor.getJson());
+    }
+  });
 })();
