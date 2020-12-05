@@ -1,7 +1,7 @@
 import { createBlockTool } from './block';
 import { $, createDom as h, render } from '../dom';
 
-function createListTool(ordered?: boolean) {
+export function createListTool(ordered?: boolean) {
   const listTitleTag = ordered ? 'ol' : 'ul';
   const listItemTag = 'li';
   const getClosestListItem = (n: Node) =>
@@ -16,7 +16,7 @@ function createListTool(ordered?: boolean) {
     );
   return createBlockTool(
     () =>
-      h(listTitleTag, { class: 'encre-ol' }, [
+      h(listTitleTag, { class: 'encre-list' }, [
         h(listItemTag, { class: 'encre-list--item' }),
       ]),
     (ctx, cloneContents, newRange) => {

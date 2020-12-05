@@ -34,11 +34,7 @@ export type IEditorTool = {
 };
 
 export interface ToolConstructor {
-  new (
-    editor: Editor,
-    bindDOMFunction: () => BindDOMType,
-    activateClass: string
-  ): IEditorTool;
+  new (editor: Editor, ...args: any[]): IEditorTool;
 }
 
 export const defaultElementsClasses = {
@@ -151,7 +147,7 @@ export class ToolTemplate implements IEditorTool {
       });
     }
   }
-  exec() {}
+  exec(...args: any) {}
   onEnter() {
     return false;
   }

@@ -68,6 +68,7 @@ export class EditorCursor {
     }
     let tempRange: Range | null;
     if ((tempRange = $.range)) {
+      this.execCallbacks();
       this.range = tempRange;
     }
   }

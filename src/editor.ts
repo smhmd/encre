@@ -10,11 +10,7 @@ import {
   ToolConstructor,
 } from './tool';
 
-type ToolObject = {
-  tool: ToolConstructor;
-  bindDOMFunction: () => BindDOMType;
-  activateClass: string;
-};
+type ToolObject = [tool: ToolConstructor, ...args: any[]];
 export type ToolArray = ToolObject[];
 
 const defaultOptions = {
@@ -106,13 +102,11 @@ export class Editor {
 
   register(tools: ToolArray) {
     let tool: IEditorTool;
+    let currentToolObj: ToolObject;
     const self = this;
     for (let i = 0; i < tools.length; i++) {
-      tool = new tools[i].tool(
-        self,
-        tools[i].bindDOMFunction,
-        tools[i].activateClass
-      );
+      currentToolObj = tools[i];
+      tool = new currentToolObj[0](self, ...currentToolObj.slice(1));
       this.tools.push(tool);
     }
   }

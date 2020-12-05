@@ -26,7 +26,6 @@ export class EditorEvent {
   }
   onAfterUpdate() {
     this.$cursor.saveCursoredElm();
-    console.log(this.$cursor.cursoredElm);
   }
 
   onBeforeUpdate() {

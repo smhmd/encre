@@ -5,7 +5,7 @@ import {
   AbstractDomChildrenOrAbstractDom,
   _resolveProps,
 } from '../dom';
-import { IEditorTool, ToolConstructor, ToolTemplate, ToolEnum } from '../tool';
+import { IEditorTool, ToolTemplate, ToolEnum } from '../tool';
 
 export function createTemplateInline(
   tag: string,
@@ -15,10 +15,13 @@ export function createTemplateInline(
   return h(tag, props, children);
 }
 
+export interface InlineToolConstructor {
+  new (...args: ConstructorParameters<typeof ToolTemplate>): IEditorTool;
+}
 export function createInlineTool(
   commandName: string,
   value?: string
-): ToolConstructor {
+): InlineToolConstructor {
   return class InlineTool extends ToolTemplate implements IEditorTool {
     readonly type = ToolEnum.INLINE;
     exec() {

@@ -14,3 +14,4 @@ export {
   JustifyRightTool,
 } from './block';
 export { UnorderedList, OrderedList } from './list';
+export { ImageTool } from './image';

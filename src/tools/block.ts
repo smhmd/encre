@@ -7,15 +7,9 @@ import {
   mergeProps,
   _resolveProps,
 } from '../dom';
-import { Editor } from '../editor';
-import {
-  ToolTemplate,
-  ToolConstructor,
-  IEditorTool,
-  BindDOMType,
-} from '../tool';
+import { ToolTemplate, IEditorTool, BindDOMType } from '../tool';
 
-type DOMFuncType = (
+export type DOMFuncType = (
   ctx: ToolTemplate
 ) => AbstractDom | HTMLElement | Element | null | undefined;
 type EnterFuncType = (
@@ -42,22 +36,20 @@ function getFirstEditableElement(contentElm: Element | null) {
   }
   return contenteditableElm;
 }
-
+export interface BlockToolConstructor {
+  new (...args: ConstructorParameters<typeof ToolTemplate>): IEditorTool;
+}
 export function createBlockTool(
   makeDOMFunc: DOMFuncType = () => null,
   onEnterFunc: EnterFuncType = () => false,
   justChangeProps: boolean = false
-): ToolConstructor {
+): BlockToolConstructor {
   return class BlockTool extends ToolTemplate implements IEditorTool {
     makeDOMFunc: DOMFuncType;
     onEnterFunc: EnterFuncType;
     blockUID: number;
-    constructor(
-      editor: Editor,
-      bindDOMFunction: () => BindDOMType,
-      activateClass = ''
-    ) {
-      super(editor, bindDOMFunction, activateClass);
+    constructor(...args: ConstructorParameters<BlockToolConstructor>) {
+      super(...args);
       this.makeDOMFunc = makeDOMFunc;
       this.onEnterFunc = onEnterFunc;
       this.blockUID = blockUID++;

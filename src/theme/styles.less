@@ -12,11 +12,6 @@
     outline: none;
     line-height: 1.5;
   }
-
-  p[contenteditable*='true'] {
-    padding: 4px 0;
-    margin: 0;
-  }
 }
 
 .encre-block {
@@ -24,5 +19,36 @@
   &__content {
     display: block;
     margin: 0 16px;
+  }
+}
+
+.encre-paragraph {
+  padding: 4px 0;
+  margin: 0;
+}
+
+.encre-blockquote {
+  position: relative;
+  &::before {
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    background-color: #dfdfdf;
+  }
+}
+
+.encre-heading-1,
+.encre-heading-2 {
+  margin: 0;
+  padding: 8px 0;
+}
+
+.encre-list {
+  &--item {
+    margin: 0;
+    padding: 4px 0;
   }
 }
