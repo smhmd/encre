@@ -1,5 +1,6 @@
 .VSCodeCounter
 .DS_Store
+temp
 # Logs
 logs
 *.log

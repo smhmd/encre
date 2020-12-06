@@ -10,6 +10,9 @@ const banner = `
  * Released under the ${pkg.license} License
  */
 `.trim();
+function isEsm(f) {
+  return !!f && f === 'es';
+}
 function genRollupObj(format = 'es') {
   const plugin = format === 'es' ? [] : [terser()];
   return {
@@ -17,11 +20,14 @@ function genRollupObj(format = 'es') {
     external: [...Object.keys(pkg.dependencies || {})],
     plugins: [
       ts({
+        useTsconfigDeclarationDir: isEsm(format),
         tsconfig: resolve(__dirname, 'tsconfig.json'),
         tsconfigOverride: {
           compilerOptions: {
             // target: format && format !== 'cjs' ? 'ESNEXT' : 'ES5',
-            declaration: format && format === 'es',
+            declaration: isEsm(format),
+            declarationMap: isEsm(format),
+            declarationDir: resolve(__dirname, './dist/temp'),
             rootDir: resolve(__dirname, 'src'),
           },
           include: [resolve(__dirname, 'src')],

@@ -121,17 +121,29 @@ export function createBlockTool(
     }
   };
 }
+/**
+ * @public
+ */
 export const ParagraphTool = createBlockTool((tool) =>
   tool.$elements.createParagraph()
 );
+/**
+ * @public
+ */
 export const BlockquoteTool = createBlockTool(() =>
   h('blockquote', {
     class: 'encre-blockquote',
   })
 );
+/**
+ * @public
+ */
 export const Heading1Tool = createBlockTool(() =>
   h('h1', { class: 'encre-heading-1' })
 );
+/**
+ * @public
+ */
 export const Heading2Tool = createBlockTool(() =>
   h('h2', { class: 'encre-heading-2' })
 );
@@ -147,6 +159,15 @@ function createJustifyTool(alignName = 'auto') {
     true
   );
 }
+/**
+ * @public
+ */
 export const JustifyLeftTool = createJustifyTool('start');
+/**
+ * @public
+ */
 export const JustifyCenterTool = createJustifyTool('center');
+/**
+ * @public
+ */
 export const JustifyRightTool = createJustifyTool('end');

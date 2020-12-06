@@ -1,7 +1,7 @@
-import { createBlockTool } from './block';
+import { createBlockTool, BlockToolConstructor } from './block';
 import { $, createDom as h, render } from '../dom';
 
-export function createListTool(ordered?: boolean) {
+export function createListTool(ordered?: boolean): BlockToolConstructor {
   const listTitleTag = ordered ? 'ol' : 'ul';
   const listItemTag = 'li';
   const getClosestListItem = (n: Node) =>
@@ -65,6 +65,11 @@ export function createListTool(ordered?: boolean) {
     }
   );
 }
-
-export const OrderedList = createListTool(true);
-export const UnorderedList = createListTool();
+/**
+ * @public
+ */
+export const OrderedList: BlockToolConstructor = createListTool(true);
+/**
+ * @public
+ */
+export const UnorderedList: BlockToolConstructor = createListTool();

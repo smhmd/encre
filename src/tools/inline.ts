@@ -4,6 +4,7 @@ import {
   AbstractProps,
   AbstractDomChildrenOrAbstractDom,
   _resolveProps,
+  AbstractDom,
 } from '../dom';
 import { IEditorTool, ToolTemplate, ToolEnum } from '../tool';
 
@@ -11,7 +12,7 @@ export function createTemplateInline(
   tag: string,
   props: AbstractProps = {},
   children: AbstractDomChildrenOrAbstractDom = []
-) {
+): AbstractDom {
   return h(tag, props, children);
 }
 
@@ -46,8 +47,19 @@ export function createInlineTool(
     }
   };
 }
-
+/**
+ * @public
+ */
 export const BoldTool = createInlineTool('bold');
+/**
+ * @public
+ */
 export const ItalicTool = createInlineTool('italic');
+/**
+ * @public
+ */
 export const UnderlineTool = createInlineTool('underline');
+/**
+ * @public
+ */
 export const StrikeThroughTool = createInlineTool('strikeThrough');

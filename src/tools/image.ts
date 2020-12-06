@@ -48,7 +48,9 @@ export function createImageTool(
     }
   };
 }
-
+/**
+ * @public
+ */
 export const ImageTool = createImageTool(() =>
   h('img', {
     class: 'encre-img',
