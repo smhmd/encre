@@ -2,13 +2,20 @@ import { Editor, EditorOptions, ToolArray } from './editor';
 import { EncreError, hasDocument, isString, throwError } from './helpers';
 import { IEditorTool, ToolConstructor } from './tool';
 export * from './tools';
+/**
+ * @internal
+ */
 export type ExtractToolConstructor<T> = T extends new (
   edtior: Editor,
   ...args: infer U
 ) => IEditorTool
   ? U
   : unknown;
-
+/**
+ * create editor function
+ * @public
+ * @param options - Editor Options
+ */
 export function createEditor(options: EditorOptions = {}) {
   const tools: ToolArray = [];
   const editor = new Editor(options);

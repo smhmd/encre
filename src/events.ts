@@ -42,7 +42,7 @@ export class EditorEvent {
   }
   /**
    * composition start
-   * @param e CompositionEvent
+   * @param e - CompositionEvent
    */
   onCompositionstart(e: CompositionEvent) {
     this.onBeforeUpdate();
@@ -206,7 +206,7 @@ export class EditorEvent {
   }
   /**
    * keydown event
-   * @param e
+   * @param e - Keyboard Event
    */
   onKeydown(e: KeyboardEvent) {
     if (this.isComposing) return;

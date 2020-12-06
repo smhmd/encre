@@ -9,6 +9,7 @@ import {
   deepClone,
   isUndefined,
   hasWindow,
+  throwError,
 } from './helpers';
 import { EditorRoles } from './tool';
 const enum AbstractDomType {
@@ -20,27 +21,28 @@ const enum AbstractDomType {
 export function isAbstractBlock(type: AbstractDomType) {
   return type === AbstractDomType.BLOCK;
 }
+const NoDocumentMsg = 'No Document Specified';
 export const $ = {
   createElement(tag: string) {
-    if (!hasDocument()) throw new EncreError('No Document Specified');
+    if (!hasDocument()) throwError(NoDocumentMsg);
     return document.createElement(tag);
   },
   createTextNode(str: string) {
-    if (!hasDocument()) throw new EncreError('No Document Specified');
+    if (!hasDocument()) throwError(NoDocumentMsg);
     const textNode = document.createTextNode(str);
     textNode._in_encre = true;
     return textNode;
   },
   createFragment() {
-    if (!hasDocument()) throw new EncreError('No Document Specified');
+    if (!hasDocument()) throwError(NoDocumentMsg);
     return document.createDocumentFragment();
   },
   seletor(str: string) {
-    if (!hasDocument()) throw new EncreError('No Document Specified');
+    if (!hasDocument()) throwError(NoDocumentMsg);
     return document.querySelector(str);
   },
   get selection() {
-    if (!hasWindow()) throw new EncreError('No Window Specified');
+    if (!hasDocument()) throwError(NoDocumentMsg);
     return window.getSelection();
   },
   get range() {
@@ -49,18 +51,18 @@ export const $ = {
     return selection.getRangeAt(0);
   },
   createRange() {
-    if (!hasDocument()) throw new EncreError('No Document Specified');
+    if (!hasDocument()) throwError(NoDocumentMsg);
     return document.createRange();
   },
   execCommand(commandName: string, value?: string) {
-    if (!hasDocument()) throw new EncreError('No Document Specified');
+    if (!hasDocument()) throwError(NoDocumentMsg);
     return (
       document.queryCommandSupported(commandName) &&
       document.execCommand(commandName, false, value)
     );
   },
   checkCommandState(commandName: string) {
-    if (!hasDocument()) throw new EncreError('No Document Specified');
+    if (!hasDocument()) throwError(NoDocumentMsg);
     return document.queryCommandState(commandName);
   },
   getFirstLeftNode(root: Element | Node | DocumentFragment) {
