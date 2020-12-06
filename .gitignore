@@ -1,6 +1,7 @@
 .VSCodeCounter
 .DS_Store
 temp
+devDist
 # Logs
 logs
 *.log
