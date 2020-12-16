@@ -31,7 +31,7 @@ if (extractorResult.succeeded) {
   process.exitCode = 1;
 }
 // build css
-shell.exec('lessc --clean-css src/theme/styles.less dist/styles.min.css');
+shell.exec('sass --no-source-map src/theme/index.scss:dist/styles.min.css');
 shell.exec('postcss dist/styles.min.css -o dist/encre.min.css');
 // rm styles.min.css
 shell.rm('-rf', path.resolve(__dirname, '../dist/styles.min.css'));
@@ -39,8 +39,8 @@ shell.rm('-rf', path.resolve(__dirname, '../dist/styles.min.css'));
 shell.rm('-rf', path.resolve(__dirname, '../dist/temp'));
 
 // cp styles.less
-shell.cp(
-  '-R',
-  path.resolve(__dirname, '../src/theme'),
-  path.resolve(__dirname, '../dist/theme')
-);
+// shell.cp(
+//   '-R',
+//   path.resolve(__dirname, '../src/theme'),
+//   path.resolve(__dirname, '../dist/theme')
+// );
