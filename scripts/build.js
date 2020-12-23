@@ -31,8 +31,7 @@ if (extractorResult.succeeded) {
   process.exitCode = 1;
 }
 // build css
-shell.exec('sass --no-source-map src/theme/index.scss:dist/styles.min.css');
-shell.exec('postcss dist/styles.min.css -o dist/encre.min.css');
+shell.exec('postcss src/theme.css -o dist/encre.min.css');
 // rm styles.min.css
 shell.rm('-rf', path.resolve(__dirname, '../dist/styles.min.css'));
 // rm temp declaratuion folders

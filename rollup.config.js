@@ -33,7 +33,7 @@ function genRollupObj(format = 'es') {
           include: [resolve(__dirname, 'src')],
           exclude: [
             '**/node_modules',
-            '**/__tests__',
+            '**/tests',
             '**/dist',
             'playground/*',
           ],
