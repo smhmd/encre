@@ -1,4 +1,4 @@
-import { getRange } from '../dom';
+import { getRange, createDOM as h } from '../dom';
 import { Editor } from '../editor';
 import { IPlugin, PluginTemplate } from '../Plugin';
 

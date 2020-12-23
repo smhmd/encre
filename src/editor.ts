@@ -13,6 +13,10 @@ import {
   setCursor,
   setCursorToStart,
   normalizeChildren,
+  convertBlockToInline,
+  html,
+  setCursorToEnd,
+  cloneAttributes,
 } from './dom';
 import {
   deepMergeOptions,
@@ -114,170 +118,108 @@ type EventState = {
   isPointerDown: boolean;
   timerId: number | any;
 };
-// backspace key down need to be smart
-function resolveBackspace(ctx: Editor, e: KeyboardEvent, state: EventState) {
+
+function resetCursoringBlock(ctx: Editor) {
   let editorElm: HTMLElement | undefined,
+    cursoringBlock: HTMLElement | undefined;
+  if (!(editorElm = ctx.elm) || !(cursoringBlock = ctx.cursoringBlock)) return;
+  const newBlock = ctx.renderNewBlock() as Element;
+  const insertedElm = editorElm.insertBefore(
+    newBlock,
+    cursoringBlock.nextElementSibling
+  );
+  editorElm.removeChild(cursoringBlock);
+  const lastNode = deepTraverseRightNode(insertedElm);
+  ctx.range = setCursorToEnd(lastNode);
+}
+// backspace key down need to be smart
+function resolveBackspace(ctx: Editor, e: KeyboardEvent) {
+  let _range: Range | null | undefined,
     cursoringBlock: HTMLElement | undefined,
-    _range: Range | null | undefined,
-    currBlockContent: HTMLElement | undefined;
-
+    deepFirstNode: Node | null = null,
+    editorElm: HTMLElement | undefined;
+  let blc: HTMLElement | undefined;
   if (
-    state.timerId ||
+    ctx.cursoringBlock &&
+    (blc = traverseAndFindBlockContent(ctx.cursoringBlock)) &&
+    blc.childElementCount > 0 &&
+    !blc.textContent?.length
+  ) {
+    resetCursoringBlock(ctx);
+    return;
+  }
+  if (
+    !(_range = ctx.range) ||
+    !_range.collapsed ||
+    _range.startOffset !== 0 ||
+    !(cursoringBlock = ctx.cursoringBlock) ||
     !(editorElm = ctx.elm) ||
-    !(cursoringBlock = ctx.cursoringBlock) || // not cursoring
-    !cursoringBlock.previousElementSibling || // is first element
-    !(_range = ctx.range) || // no range
-    !_range.collapsed || // is not collapsed
-    !cursoringBlock.contains(_range.commonAncestorContainer) || // range content doesn't in editor
-    !(currBlockContent = traverseAndFindBlockContent(cursoringBlock))
+    !(deepFirstNode = deepTraverseLeftNode(cursoringBlock)) ||
+    !deepFirstNode.isSameNode(_range.startContainer)
   ) {
-    // heavy fast fail
     return;
   }
 
-  const firstTextNode =
-    findFirstText(currBlockContent) || cursoringBlock.firstChild;
-  if (
-    !firstTextNode ||
-    !firstTextNode.isSameNode(_range.startContainer) || // range not first node
-    !(_range.startOffset === 0) // range offset not at 0
-  ) {
-    return;
-  }
-  let closestBlockStyleElm: HTMLElement | undefined, lastNode: Node | undefined;
-  if (
-    !(closestBlockStyleElm = lookup(_range.startContainer, (current) =>
-      isBlockStyleElement(current)
-    ) as HTMLElement | undefined) ||
-    !(lastNode = deepTraverseRightNode(closestBlockStyleElm))
-  ) {
-    return;
-  }
-  _range.setEnd(lastNode, lastNode.textContent?.length || 0);
-  const extractFrag = _range.extractContents();
-  let insertedNode: Node | undefined;
-  if (isBlockContent(closestBlockStyleElm)) {
-    // if closest block is content
-    let previousElm: HTMLElement | undefined,
-      previousBlC: HTMLElement | undefined;
-    if (
-      !(previousElm = cursoringBlock.previousElementSibling as
-        | HTMLElement
-        | undefined) ||
-      !(previousBlC = traverseAndFindBlockContent(previousElm) as
-        | HTMLElement
-        | undefined)
-    ) {
-      return;
+  let prevCursorElm = cursoringBlock.previousElementSibling;
+  if (!cursoringBlock.textContent?.length) {
+    if (!prevCursorElm) {
+      const blc = traverseAndFindBlockContent(cursoringBlock);
+      if (!blc) return;
+      const newBlock = ctx.renderNewBlock() as Element;
+      prevCursorElm = editorElm.insertBefore(
+        newBlock,
+        cursoringBlock.nextElementSibling
+      );
     }
-
-    let lastNode: Node;
-    let lastElement: HTMLElement | undefined;
-    const lastChildIdx =
-      previousBlC.childNodes.length > 0 ? previousBlC.childNodes.length - 1 : 0;
-    if (
-      !(lastNode = deepTraverseRightNode(previousBlC)) ||
-      !(lastElement = lookup(lastNode, (curr) => isHTMLElement(curr)) as
-        | HTMLElement
-        | undefined)
-    ) {
-      return;
-    }
-    const endIdx = lastNode.textContent?.length || 0;
-    if (!lastElement.textContent?.length) {
-      // important
-      // clear previous block's innner element
-      // in case change appended style
-      lastElement.innerHTML = '';
-    }
-    lastElement.insertBefore(extractFrag, null);
     editorElm.removeChild(cursoringBlock);
-    lastNode = previousBlC.childNodes.item(lastChildIdx) || previousBlC;
-    lastNode = deepTraverseRightNode(lastNode);
-    state.timerId = setTimeout(() => {
-      ctx.range = setCursor(lastNode, endIdx);
-      clearTimeout(state.timerId);
-      state.timerId = 0;
-    });
-  } else {
-    // create new block paragraph
-    // and insert it before current block
-    const templateBlock = ctx.renderNewBlock(extractFrag);
-    insertedNode = editorElm.insertBefore(templateBlock, cursoringBlock);
-    if (
-      !(insertedNode = traverseAndFindBlockContent(insertedNode as HTMLElement))
-    ) {
-      return;
-    }
-    // set range
-    const leftTextNode = deepTraverseLeftNode(insertedNode);
-    ctx.range = setCursorToStart(leftTextNode);
-    closestBlockStyleElm.remove();
   }
+  if (!prevCursorElm) return;
+  const lastNode = deepTraverseRightNode(prevCursorElm);
+  lastNode.textContent += '\u00A0';
+  ctx.range = setCursorToEnd(lastNode);
 }
 
 function resolveEnter(ctx: Editor, e: KeyboardEvent) {
-  e.preventDefault();
   let _range: Range | null | undefined,
-    closestBlockElm: HTMLElement | undefined;
+    closestBlockElm: HTMLElement | undefined,
+    cursoringBlock: HTMLElement | undefined,
+    editorElm: HTMLElement | undefined;
   if (
     !(_range = ctx.range) ||
-    !(closestBlockElm = lookup(_range.commonAncestorContainer, (current) =>
-      isBlockStyleElement(current)
-    ) as HTMLElement | undefined)
+    !_range.collapsed ||
+    !(closestBlockElm = lookup(
+      _range.startContainer,
+      (curr) => isHTMLElement(curr) && isBlockStyleElement(curr)
+    ) as HTMLElement | undefined) ||
+    !(cursoringBlock = ctx.cursoringBlock) ||
+    !(editorElm = ctx.elm)
   ) {
+    return e.preventDefault();
+  }
+
+  let insertedElm: HyperElement;
+  let extractContents: DocumentFragment | undefined;
+  if (isBlockContent(closestBlockElm)) {
+    e.preventDefault();
+
+    const lastNode = deepTraverseRightNode(closestBlockElm);
+    _range.setEnd(lastNode, lastNode.textContent?.length || 0);
+    extractContents = _range.extractContents();
+  } else if (
+    !closestBlockElm.textContent?.length &&
+    closestBlockElm.previousElementSibling &&
+    !closestBlockElm.nextElementSibling
+  ) {
+    e.preventDefault();
+    closestBlockElm.parentElement?.removeChild(closestBlockElm);
+  } else {
     return;
   }
-  if (!_range.collapsed) {
-    _range.deleteContents();
-  }
-  const lastNode = deepTraverseRightNode(closestBlockElm);
-  // set end to the last node
-  _range.setEnd(lastNode, lastNode.textContent?.length || 0);
-  const extractFrag = _range.extractContents();
-  let insertedNode: HTMLElement | undefined;
-  if (
-    isBlockContent(closestBlockElm) ||
-    (closestBlockElm.parentElement?.lastElementChild?.isSameNode(
-      closestBlockElm
-    ) &&
-      !closestBlockElm.textContent?.length)
-  ) {
-    // if closest block element is editable element
-    // or there is no text in this element
-    // just append a new template block
-    let editorElm: HTMLElement | undefined,
-      cursoringBlock: HTMLElement | undefined;
-    if (!(editorElm = ctx.elm)) return;
-    const templateBlock = ctx.renderNewBlock(extractFrag);
-    insertedNode = editorElm.insertBefore(
-      templateBlock,
-      ((cursoringBlock = ctx.cursoringBlock) &&
-        cursoringBlock.nextElementSibling) ||
-        null
-    ) as HTMLElement;
-    if (!(insertedNode = traverseAndFindBlockContent(insertedNode))) {
-      return;
-    }
-
-    // delete empty and not-content closest block
-    if (!isBlockContent(closestBlockElm)) {
-      closestBlockElm.parentElement?.removeChild(closestBlockElm);
-    }
-  } else {
-    let parentElm: HTMLElement | null;
-    if (!(parentElm = closestBlockElm.parentElement)) return;
-    const clonedElm = closestBlockElm.cloneNode();
-    clonedElm.appendChild(extractFrag);
-    insertedNode = parentElm.insertBefore(
-      clonedElm,
-      closestBlockElm.nextElementSibling
-    ) as HTMLElement;
-  }
-  let childNode: Node | null;
-  if ((childNode = deepTraverseLeftNode(insertedNode))) {
-    ctx.range = setCursorToStart(childNode);
-  }
+  insertedElm = editorElm.insertBefore(
+    ctx.renderNewBlock(extractContents),
+    cursoringBlock.nextElementSibling
+  );
+  ctx.range = setCursorToStart(deepTraverseRightNode(insertedElm));
 }
 /**
  * @internal on tab key down
@@ -296,14 +238,14 @@ function resolveTab(ctx: Editor, e: KeyboardEvent) {
   _range.collapse(false);
   ctx.range = _range;
 }
-function resolveKeydown(ctx: Editor, e: KeyboardEvent, state: EventState) {
+function resolveKeydown(ctx: Editor, e: KeyboardEvent) {
   switch (e.key) {
     case 'Enter': {
       resolveEnter(ctx, e);
       break;
     }
     case 'Backspace': {
-      resolveBackspace(ctx, e, state);
+      resolveBackspace(ctx, e);
       break;
     }
     case 'Tab': {
@@ -335,7 +277,7 @@ function createEvents(ctx: Editor) {
     onKeydown: (e: KeyboardEvent) => {
       if (state.isComposing) return;
       updateRangeFromDocument(ctx);
-      resolveKeydown(ctx, e, state);
+      resolveKeydown(ctx, e);
     },
     onKeyup: () => {
       if (state.isComposing) return;
@@ -349,6 +291,7 @@ function createEvents(ctx: Editor) {
     },
     onPointerdown: () => {
       state.isPointerDown = true;
+      updateRangeFromDocument(ctx);
     },
     onPointerup: (e: PointerEvent) => {
       state.isPointerDown = false;

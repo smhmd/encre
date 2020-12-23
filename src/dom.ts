@@ -247,7 +247,7 @@ export function setCursor(n: Node, offset: number) {
   r.selectNodeContents(n);
   r.setStart(n, offset);
   r.setEnd(n, offset);
-  r.collapse();
+  r.collapse(false);
   selection.addRange(r);
   return r;
 }
@@ -321,6 +321,7 @@ export function deepTraverseLeftNode(n: Node) {
 
 export function convertBlockToInline(n: Node) {
   let result = n.cloneNode();
+
   if (isBlockStyleElement(n)) {
     result = document.createDocumentFragment();
   }
@@ -331,4 +332,15 @@ export function convertBlockToInline(n: Node) {
   }
 
   return result;
+}
+
+export function cloneAttributes(elm: HTMLElement) {
+  const props: HyperProps = {};
+  let attr: Attr | null;
+  for (let i = 0; i < elm.attributes.length; i++) {
+    attr = elm.attributes.item(i);
+    if (!attr) continue;
+    props[attr.name] = attr.value;
+  }
+  return props;
 }
