@@ -1,34 +1,68 @@
-import { Editor, isBlockContent, traverseAndFindBlockContent } from '../editor';
-import { IPlugin, PluginTemplate } from '../Plugin';
+import { Editor, EditorRole, HyperProps } from '../config';
+import { IPlugin, PluginTemplate, Feature, PluginConstructor } from '../plugin';
 import {
   convertBlockToInline,
   createDOM as h,
   deepTraverseRightNode,
   lookup,
+  mergeProps,
   setCursorToEnd,
+  traverseAndFindBlockContent,
+  isBlockContent,
 } from '../dom';
 import { isHTMLElement } from '../helpers';
 
+const defaultListProps: HyperProps = {
+  class: 'editor-list',
+};
+const defaultItemProps: HyperProps = {
+  class: 'editor-list-item',
+};
+
 function makeListPlugin(ordered?: boolean) {
+  const tagName = ordered ? 'ol' : 'ul';
+  const listFeaure: Feature = {
+    tag: tagName,
+    name: tagName,
+    props: {},
+  };
+  const itemFeature: Feature = {
+    tag: 'li',
+    name: 'li',
+    props: {},
+  };
+
   return class ListPlugin extends PluginTemplate implements IPlugin {
-    _inner_role: string;
-    constructor(editor: Editor) {
+    features: Feature[] = [];
+    constructor(
+      editor: Editor,
+      listProps: HyperProps = {},
+      itemProps: HyperProps = {}
+    ) {
       super(editor);
-      this._inner_role = 'list-' + this._uid;
+      listFeaure.props = mergeProps(defaultListProps, listProps, {
+        feature: listFeaure.name,
+        contenteditable: true,
+        role: EditorRole.blockContent,
+      });
+      itemFeature.props = mergeProps(defaultItemProps, itemProps, {
+        feature: itemFeature.name,
+      });
+      this.features = [listFeaure, itemFeature];
     }
     exec() {
-      const { cursoringBlock, range, elm: editorElm } = this.$editor;
+      const { cursoringBlock, elm: editorElm } = this.$editor;
       let blc: HTMLElement | undefined, nextBlock: Element | null;
 
       if (
+        this.$editor.disabled ||
         !editorElm ||
         !cursoringBlock ||
         !(blc = traverseAndFindBlockContent(cursoringBlock)) ||
-        blc.tagName === (ordered ? 'OL' : 'UL')
+        blc.tagName === tagName.toUpperCase()
       ) {
         return;
       }
-      const tagName = ordered ? 'ol' : 'ul';
       const frag = document.createDocumentFragment();
       let props: Record<string, any> = {};
 
@@ -40,25 +74,16 @@ function makeListPlugin(ordered?: boolean) {
           if (!attr) continue;
           props[attr.name] = attr.value;
         }
+        props['feature'] = listFeaure.name;
         frag.append(...blc.childNodes);
       } else {
-        props = {
-          class: 'editor-list',
-        };
+        props = listFeaure.props;
         const convertedFrag = convertBlockToInline(blc);
         frag.append(
-          h(
-            'li',
-            {
-              class: 'editor-list-item',
-            },
-            convertedFrag as DocumentFragment
-          )
+          h('li', itemFeature.props, convertedFrag as DocumentFragment)
         );
       }
-      const newBlock = this.$editor.renderNewBlock(tagName, props, frag, {
-        _inner_role: this._inner_role,
-      });
+      const newBlock = this.$editor.renderNewBlock(tagName, props, frag);
       nextBlock = cursoringBlock.nextElementSibling;
       editorElm.removeChild(cursoringBlock);
       const insertedBlock = editorElm.insertBefore(newBlock, nextBlock);
@@ -71,11 +96,11 @@ function makeListPlugin(ordered?: boolean) {
       if (!(r = this.$editor.range)) return false;
       return Boolean(
         lookup(
-          r.startContainer,
+          r.commonAncestorContainer,
           (curr) =>
             isHTMLElement(curr) &&
             isBlockContent(curr) &&
-            curr['_inner_role'] === this._inner_role
+            curr.getAttribute('feature') === listFeaure.name
         )
       );
     }

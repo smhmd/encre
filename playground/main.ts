@@ -7,14 +7,59 @@ import {
   OrderedList,
   BoldPlugin,
   ItalicPlugin,
+  StrikeThroughPlugin,
+  UnderlinePlugin,
+  Heading2Plugin,
+  ParagraphPlugin,
+  BlockquotePlugin,
+  AlignLeftPlugin,
+  AlignRightPlugin,
+  AlignCenterPlugin,
+  ImagePlugin,
 } from '/src/index';
 
 const editor = createEncre()
-  .use(UnorderedList)
+  .use(
+    UnorderedList,
+    {},
+    {
+      class: 'list-item',
+    }
+  )
   .use(OrderedList)
   .use(ItalicPlugin)
   .use(BoldPlugin)
+  .use(StrikeThroughPlugin)
+  .use(UnderlinePlugin)
+  .use(Heading2Plugin)
+  .use(ParagraphPlugin)
+  .use(BlockquotePlugin)
+  .use(AlignLeftPlugin)
+  .use(AlignCenterPlugin)
+  .use(AlignRightPlugin)
+  .use(ImagePlugin)
   .mount('#content');
+
+editor.setJson([
+  {
+    feature: 'block',
+    children: [
+      {
+        feature: 'ul',
+        children: [
+          {
+            feature: 'li',
+            children: ['Hello'],
+          },
+          {
+            feature: 'li',
+            children: ['World'],
+          },
+        ],
+      },
+    ],
+  },
+]);
 
 function registerClick(
   selector: string,
@@ -42,14 +87,26 @@ function registerActive(
     : elm.classList.remove(activeName);
 }
 
-registerClick('#ul', UnorderedList);
-registerClick('#ol', OrderedList);
-registerClick('#bold', BoldPlugin);
-registerClick('#italic', ItalicPlugin);
+function register(selector: string, constructor: new (...args: any[]) => any) {
+  registerClick(selector, constructor);
+  editor.onUpdate(() => {
+    registerActive(selector, constructor);
+  });
+}
 
-editor.onRangeSaved(() => {
-  registerActive('#ul', UnorderedList);
-  registerActive('#ol', OrderedList);
-  registerActive('#bold', BoldPlugin);
-  registerActive('#italic', ItalicPlugin);
+register('#ul', UnorderedList);
+register('#ol', OrderedList);
+register('#bold', BoldPlugin);
+register('#italic', ItalicPlugin);
+register('#underline', UnderlinePlugin);
+register('#strike-through', StrikeThroughPlugin);
+register('#heading', Heading2Plugin);
+register('#blockquote', BlockquotePlugin);
+register('#paragraph', ParagraphPlugin);
+register('#align-left', AlignLeftPlugin);
+register('#align-center', AlignCenterPlugin);
+register('#align-right', AlignRightPlugin);
+
+editor.onUpdate(() => {
+  console.log(editor.getJson());
 });

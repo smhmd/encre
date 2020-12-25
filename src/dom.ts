@@ -1,4 +1,11 @@
 import {
+  EditorRole,
+  PropClassType,
+  HyperElement,
+  HyperChildren,
+  HyperProps,
+} from './config';
+import {
   hyphenate,
   isArray,
   isBlockStyleElement,
@@ -8,13 +15,6 @@ import {
   isString,
   isUndefined,
 } from './helpers';
-export type PropClassType = string | Record<string, any> | Array<any>;
-export type HyperProps = { [props: string]: any } & {
-  class?: PropClassType;
-  style?: PropClassType;
-};
-export type HyperElement = HTMLElement | DocumentFragment | Text;
-export type HyperChildren = HyperElement[] | HyperElement | string | undefined;
 
 function normalizeClass(value: PropClassType) {
   let result: string[] = [];
@@ -64,8 +64,8 @@ function normalizeStyle(value: PropClassType) {
 
   return result;
 }
-function resolveProps(elm: HyperElement, props: HyperProps) {
-  if (!(elm instanceof HTMLElement)) return;
+export function resolveProps(elm: HyperElement, props: HyperProps) {
+  if (!isHTMLElement(elm)) return;
   let value: any;
   for (let key in props) {
     value = props[key];
@@ -82,7 +82,15 @@ function resolveProps(elm: HyperElement, props: HyperProps) {
       }
       case 'class': {
         const classArr = normalizeClass(value);
-        elm.className = classArr.join(' ');
+        elm.className = classArr
+          .reduce((prev, next) => {
+            if (prev.indexOf(next) !== -1) {
+              return prev;
+            }
+            prev.push(next);
+            return prev;
+          }, [] as string[])
+          .join(' ');
         break;
       }
       default: {
@@ -296,6 +304,12 @@ export function lookup(n: Node, cb: (current: Node) => boolean) {
     if (cb && isFunction(cb) && cb.call(null, current)) {
       return current;
     }
+    if (
+      isHTMLElement(n) &&
+      (n.getAttribute('role') === EditorRole.container || n.tagName === 'BODY')
+    ) {
+      return void 0;
+    }
     current = current.parentNode;
   }
   return void 0;
@@ -343,4 +357,21 @@ export function cloneAttributes(elm: HTMLElement) {
     props[attr.name] = attr.value;
   }
   return props;
+}
+
+function makeIsRoleEqualFunction(roleName: EditorRole) {
+  return function (elm: HTMLElement) {
+    return elm.getAttribute('role') === roleName;
+  };
+}
+
+export const isEditorElement = makeIsRoleEqualFunction(EditorRole.editor);
+export const isBlockElement = makeIsRoleEqualFunction(EditorRole.block);
+export const isBlockContent = makeIsRoleEqualFunction(EditorRole.blockContent);
+
+export function traverseAndFindBlockContent(elm: HTMLElement) {
+  return bfs(
+    elm,
+    (current) => isHTMLElement(current) && isBlockContent(current)
+  ) as HTMLElement | undefined;
 }

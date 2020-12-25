@@ -47,6 +47,14 @@ export function hyphenate(str: string) {
   return str.replace(/\B([A-Z])/, '-$1').toLowerCase();
 }
 
+export function hasProperty(obj: object, keyName: string) {
+  return Object.prototype.hasOwnProperty.call(obj, keyName);
+}
+
+export function warn(msg: string) {
+  console.warn(`[Encre Warn]: ${msg}`);
+}
+
 export class EncreError extends Error {
   constructor(str: string = '') {
     super(`[Encre Error]: ${str}`);
@@ -86,4 +94,19 @@ export function deepMergeOptions<T extends Record<string, any>>(
     defaultOptions = _deepMerge(defaultOptions, args[i]);
   }
   return defaultOptions as T;
+}
+
+export function deepClone(obj: any) {
+  if (!isObject(obj)) obj;
+  const result: Record<string, any> = isArray(obj) ? [] : {};
+  let value: any;
+  for (let key in obj) {
+    value = obj[key];
+    if (isObject(value)) {
+      result[key] = deepClone(value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }

@@ -1,314 +1,77 @@
 import {
+  defaultOptions,
+  Editor,
+  EditorOptions,
+  EditorRole,
+  IReigsteredPlugin,
+  PluginItem,
+  HyperChildren,
+  HyperProps,
+} from './config';
+import {
   bfs,
   createDOM as h,
-  deepTraverseLeftNode,
-  deepTraverseRightNode,
-  dfs,
-  getRange,
-  HyperChildren,
-  HyperElement,
-  HyperProps,
   lookup,
   mergeProps,
-  setCursor,
-  setCursorToStart,
   normalizeChildren,
-  convertBlockToInline,
-  html,
+  traverseAndFindBlockContent,
+  isBlockContent,
+  isBlockElement,
+  isEditorElement,
+  deepTraverseRightNode,
+  dfs,
   setCursorToEnd,
-  cloneAttributes,
 } from './dom';
+import { createEvents } from './events';
 import {
+  deepClone,
   deepMergeOptions,
+  hasProperty,
   isBlockStyleElement,
   isFunction,
   isHTMLElement,
   isString,
+  warn,
 } from './helpers';
-import { ExtractPluginInterface, PluginConstructor } from './Plugin';
-
-type ClassesKeys =
-  | 'container'
-  | 'editor'
-  | 'block'
-  | 'block-content'
-  | 'focused';
-export type EditorClasses = {
-  [T in ClassesKeys]?: string;
-};
-
-export interface EditorOptions extends Record<string, any> {
-  readonly?: boolean;
-  autofocus?: boolean;
-  classes?: EditorClasses;
-}
-
-export interface Editor {
-  elm: HTMLElement | undefined;
-  cursoringBlock: HTMLElement | undefined;
-  plugins: IReigsteredPlugin;
-  range: Range | null | undefined;
-  onRangeSaved: (cb: () => any) => void;
-  renderNewBlock: (
-    tagOrChildren?: string | HyperChildren,
-    props?: HyperProps,
-    children?: HyperChildren,
-    innerProps?: Record<string, any>
-  ) => HyperElement;
-}
-
-export const enum EditorRole {
-  editor = 'editor-content',
-  container = 'editor-container',
-  block = 'editor-block',
-  blockContent = 'editor-block-content',
-}
-
-export const defaultOptions: EditorOptions = {
-  readonly: false,
-  autofocus: true,
-  classes: {
-    editor: 'editor',
-    container: 'editor__container',
-    block: 'editor-block',
-    focused: 'editor-block--focused',
-    'block-content': 'editor-block__content',
-  },
-};
-
-export type PluginItem = [plugin: PluginConstructor, args: any[]];
-
-export type IReigsteredPlugin = ReturnType<typeof registerPlugins>;
+import { Feature, FeatureRecord, IPlugin, PluginConstructor } from './plugin';
+import {
+  isEncreStruct,
+  serialize,
+  deserialize,
+  SerializedStruct,
+} from './serialize';
 
 function registerPlugins(ctx: Editor, plugins: PluginItem[]) {
-  let item: PluginItem;
+  let item: PluginItem, itemInstance: IPlugin, featureItem: Feature;
   const pluginMap = new WeakMap<PluginConstructor, any>();
+  const featureRecord: FeatureRecord = {};
 
   for (let i = 0; i < plugins.length; i++) {
     item = plugins[i];
     if (isFunction(item[0])) {
-      pluginMap.set(item[0], new item[0](ctx, ...item[1]));
+      itemInstance = new item[0](ctx, ...item[1]);
+      pluginMap.set(item[0], itemInstance);
+      for (let i = 0; i < itemInstance.features.length; i++) {
+        featureItem = itemInstance.features[i];
+        featureRecord[featureItem.name] = {
+          tag: featureItem.tag,
+          props: deepClone(
+            mergeProps(
+              hasProperty(featureRecord, featureItem.name)
+                ? featureRecord[featureItem.name].props
+                : {},
+              featureItem.props
+            )
+          ),
+        };
+      }
     }
   }
   return {
-    get<T extends new (...args: any[]) => any>(
-      constructorOrName: T
-    ): ExtractPluginInterface<T> | undefined {
-      return pluginMap.get(constructorOrName);
-    },
+    pluginMap,
+    featureRecord,
   };
 }
-
-export function traverseAndFindBlockContent(elm: HTMLElement) {
-  return bfs(
-    elm,
-    (current) => isHTMLElement(current) && isBlockContent(current)
-  ) as HTMLElement | undefined;
-}
-
-function findFirstText(elm: Node) {
-  return dfs(
-    elm,
-    (current) => current.nodeName === '#text' && !!current.textContent?.length
-  );
-}
-
-type EventState = {
-  isComposing: boolean;
-  isPointerDown: boolean;
-  timerId: number | any;
-};
-
-function resetCursoringBlock(ctx: Editor) {
-  let editorElm: HTMLElement | undefined,
-    cursoringBlock: HTMLElement | undefined;
-  if (!(editorElm = ctx.elm) || !(cursoringBlock = ctx.cursoringBlock)) return;
-  const newBlock = ctx.renderNewBlock() as Element;
-  const insertedElm = editorElm.insertBefore(
-    newBlock,
-    cursoringBlock.nextElementSibling
-  );
-  editorElm.removeChild(cursoringBlock);
-  const lastNode = deepTraverseRightNode(insertedElm);
-  ctx.range = setCursorToEnd(lastNode);
-}
-// backspace key down need to be smart
-function resolveBackspace(ctx: Editor, e: KeyboardEvent) {
-  let _range: Range | null | undefined,
-    cursoringBlock: HTMLElement | undefined,
-    deepFirstNode: Node | null = null,
-    editorElm: HTMLElement | undefined;
-  let blc: HTMLElement | undefined;
-  if (
-    ctx.cursoringBlock &&
-    (blc = traverseAndFindBlockContent(ctx.cursoringBlock)) &&
-    blc.childElementCount > 0 &&
-    !blc.textContent?.length
-  ) {
-    resetCursoringBlock(ctx);
-    return;
-  }
-  if (
-    !(_range = ctx.range) ||
-    !_range.collapsed ||
-    _range.startOffset !== 0 ||
-    !(cursoringBlock = ctx.cursoringBlock) ||
-    !(editorElm = ctx.elm) ||
-    !(deepFirstNode = deepTraverseLeftNode(cursoringBlock)) ||
-    !deepFirstNode.isSameNode(_range.startContainer)
-  ) {
-    return;
-  }
-
-  let prevCursorElm = cursoringBlock.previousElementSibling;
-  if (!cursoringBlock.textContent?.length) {
-    if (!prevCursorElm) {
-      const blc = traverseAndFindBlockContent(cursoringBlock);
-      if (!blc) return;
-      const newBlock = ctx.renderNewBlock() as Element;
-      prevCursorElm = editorElm.insertBefore(
-        newBlock,
-        cursoringBlock.nextElementSibling
-      );
-    }
-    editorElm.removeChild(cursoringBlock);
-  }
-  if (!prevCursorElm) return;
-  const lastNode = deepTraverseRightNode(prevCursorElm);
-  lastNode.textContent += '\u00A0';
-  ctx.range = setCursorToEnd(lastNode);
-}
-
-function resolveEnter(ctx: Editor, e: KeyboardEvent) {
-  let _range: Range | null | undefined,
-    closestBlockElm: HTMLElement | undefined,
-    cursoringBlock: HTMLElement | undefined,
-    editorElm: HTMLElement | undefined;
-  if (
-    !(_range = ctx.range) ||
-    !_range.collapsed ||
-    !(closestBlockElm = lookup(
-      _range.startContainer,
-      (curr) => isHTMLElement(curr) && isBlockStyleElement(curr)
-    ) as HTMLElement | undefined) ||
-    !(cursoringBlock = ctx.cursoringBlock) ||
-    !(editorElm = ctx.elm)
-  ) {
-    return e.preventDefault();
-  }
-
-  let insertedElm: HyperElement;
-  let extractContents: DocumentFragment | undefined;
-  if (isBlockContent(closestBlockElm)) {
-    e.preventDefault();
-
-    const lastNode = deepTraverseRightNode(closestBlockElm);
-    _range.setEnd(lastNode, lastNode.textContent?.length || 0);
-    extractContents = _range.extractContents();
-  } else if (
-    !closestBlockElm.textContent?.length &&
-    closestBlockElm.previousElementSibling &&
-    !closestBlockElm.nextElementSibling
-  ) {
-    e.preventDefault();
-    closestBlockElm.parentElement?.removeChild(closestBlockElm);
-  } else {
-    return;
-  }
-  insertedElm = editorElm.insertBefore(
-    ctx.renderNewBlock(extractContents),
-    cursoringBlock.nextElementSibling
-  );
-  ctx.range = setCursorToStart(deepTraverseRightNode(insertedElm));
-}
-/**
- * @internal on tab key down
- * @param ctx
- * @param e
- */
-function resolveTab(ctx: Editor, e: KeyboardEvent) {
-  e.preventDefault();
-  let _range: Range | null | undefined;
-  if (!(_range = ctx.range)) return;
-  const tabWord = '\u00A0'.repeat(4);
-  if (!_range.collapsed) {
-    _range.deleteContents();
-  }
-  _range.insertNode(document.createTextNode(tabWord));
-  _range.collapse(false);
-  ctx.range = _range;
-}
-function resolveKeydown(ctx: Editor, e: KeyboardEvent) {
-  switch (e.key) {
-    case 'Enter': {
-      resolveEnter(ctx, e);
-      break;
-    }
-    case 'Backspace': {
-      resolveBackspace(ctx, e);
-      break;
-    }
-    case 'Tab': {
-      resolveTab(ctx, e);
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-function updateRangeFromDocument(ctx: Editor) {
-  let _range: Range | null;
-  if (!(_range = getRange()) || ctx.range === _range) {
-    // just in case no range selected and duplicated selection
-    return;
-  }
-  ctx.range = _range;
-}
-
-function createEvents(ctx: Editor) {
-  const state = {
-    isComposing: false,
-    isPointerDown: false,
-    timerId: 0,
-  };
-
-  return {
-    onKeydown: (e: KeyboardEvent) => {
-      if (state.isComposing) return;
-      updateRangeFromDocument(ctx);
-      resolveKeydown(ctx, e);
-    },
-    onKeyup: () => {
-      if (state.isComposing) return;
-      updateRangeFromDocument(ctx);
-    },
-    onCompositionstart: () => {
-      state.isComposing = true;
-    },
-    onCompositionend: () => {
-      state.isComposing = false;
-    },
-    onPointerdown: () => {
-      state.isPointerDown = true;
-      updateRangeFromDocument(ctx);
-    },
-    onPointerup: (e: PointerEvent) => {
-      state.isPointerDown = false;
-      updateRangeFromDocument(ctx);
-    },
-  };
-}
-
-function makeIsRoleEqualFunction(roleName: EditorRole) {
-  return function (elm: HTMLElement) {
-    return elm.getAttribute('role') === roleName;
-  };
-}
-
-export const isEditorElement = makeIsRoleEqualFunction(EditorRole.editor);
-export const isBlockElement = makeIsRoleEqualFunction(EditorRole.block);
-export const isBlockContent = makeIsRoleEqualFunction(EditorRole.blockContent);
 
 let uid = 0;
 export function createEditor(
@@ -320,7 +83,8 @@ export function createEditor(
   const _options = deepMergeOptions(defaultOptions, opts),
     _classes = _options.classes!;
   let _plugins: IReigsteredPlugin,
-    _events: Record<string, any>,
+    _features: FeatureRecord,
+    _events: Record<string, (...args: any[]) => any>,
     _range: Range | null | undefined,
     _cursoringBlock: HTMLElement | undefined;
 
@@ -362,8 +126,9 @@ export function createEditor(
     if (
       !_cursoringBlock ||
       !(blc = traverseAndFindBlockContent(_cursoringBlock))
-    )
+    ) {
       return;
+    }
     let child: Node;
     for (let i = 0; i < blc.childNodes.length; ) {
       child = blc.childNodes.item(i);
@@ -375,8 +140,26 @@ export function createEditor(
     }
   };
 
+  const autofocus = () => {
+    let firstBlc: HTMLElement | undefined;
+    if (
+      (firstBlc = dfs(
+        root,
+        (curr) =>
+          isHTMLElement(curr) &&
+          isBlockContent(curr) &&
+          !!curr.getAttribute('contenteditable')
+      ) as HTMLElement | undefined)
+    ) {
+      instance.range = setCursorToEnd(deepTraverseRightNode(firstBlc));
+    }
+  };
+
   // instance
   const instance: Editor = {
+    get disabled() {
+      return !!_options.readonly;
+    },
     get elm() {
       return bfs(
         root,
@@ -403,7 +186,7 @@ export function createEditor(
       // clear content inner empty inline elements
       shallowClearBlockContent();
     },
-    onRangeSaved(cb: () => any) {
+    onUpdate(cb: () => any) {
       if (cb && isFunction(cb)) {
         rangeSavedCallbacks.push(cb);
       }
@@ -452,9 +235,35 @@ export function createEditor(
         content
       );
     },
+    getJson() {
+      let root: HTMLElement | undefined;
+      if (!(root = instance.elm) || !_features) {
+        warn('Editor element not found or features not specified');
+        return [];
+      }
+      const result = serialize(root, _features);
+      if (isString(result)) {
+        return [];
+      }
+      return result.children as SerializedStruct[];
+    },
+    setJson(val: SerializedStruct[]) {
+      let editorElm: HTMLElement | undefined;
+      if (!(editorElm = instance.elm)) {
+        return warn('editor element not found');
+      }
+      const frag = deserialize(val, _features, _classes, _options.readonly);
+      editorElm.innerHTML = '';
+      editorElm.append(frag);
+      if (!_options.readonly) {
+        autofocus();
+      }
+    },
   };
   // initial global variables
-  _plugins = registerPlugins(instance, plgs);
+  const { pluginMap, featureRecord } = registerPlugins(instance, plgs);
+  _plugins = pluginMap;
+  _features = featureRecord;
   _events = _options.readonly ? {} : createEvents(instance);
   // create children
   const content = instance.renderNewBlock();
@@ -483,6 +292,9 @@ export function createEditor(
   );
   // root append Child
   root.appendChild(container);
-
+  // autofocus
+  if (!_options.readonly && _options.autofocus) {
+    autofocus();
+  }
   return instance;
 }
