@@ -1,6 +1,6 @@
 import { getRange, createDOM as h } from '../dom';
 import { Editor } from '../config';
-import { Feature, IPlugin, PluginConstructor, PluginTemplate } from '../plugin';
+import { Feature, IPlugin, PluginConstructor, PluginTemplate } from './plugin';
 
 function makeInlinePlugin(commandName: string): PluginConstructor {
   return class InlinePlugin extends PluginTemplate implements IPlugin {

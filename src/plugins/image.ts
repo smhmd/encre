@@ -4,14 +4,16 @@ import {
   convertBlockToInline,
   setCursorToStart,
   deepTraverseLeftNode,
+  deepTraverseRightNode,
 } from '../dom';
 import { Editor, HyperProps } from '../config';
-import { IPlugin, PluginConstructor, PluginTemplate, Feature } from '../plugin';
+import { IPlugin, PluginConstructor, PluginTemplate, Feature } from './plugin';
 
 export function makeImagePlugin() {
   const defaultProps = {
     src: '',
     alt: '',
+    class: 'editor-image',
     feature: 'image',
   };
   return class ImagePlugin extends PluginTemplate implements IPlugin {
@@ -39,18 +41,25 @@ export function makeImagePlugin() {
       ) {
         return;
       }
+      if (!_range.collapsed) {
+        _range.deleteContents();
+      }
+      const lastNode = deepTraverseRightNode(cursoringBlock);
+      _range.setEnd(lastNode, lastNode.textContent?.length || 0);
       const mergedProps = mergeProps(defaultProps, {
           src,
-          'data-src': src,
         }),
-        imgBlock = h(this.features[0].tag || 'img', mergedProps),
+        imgBlock = h(this.features[0].tag || 'div', mergedProps),
         nextElm = cursoringBlock.nextElementSibling,
         newBlock = this.$editor.renderNewBlock([imgBlock]),
         extractBlock = this.$editor.renderNewBlock(
           convertBlockToInline(_range.extractContents()) as DocumentFragment
         );
-      const insertedBlock = editorElm.insertBefore(extractBlock, nextElm);
-      editorElm.insertBefore(newBlock, insertedBlock);
+      let insertedBlock = editorElm.insertBefore(newBlock, nextElm);
+      insertedBlock = editorElm.insertBefore(
+        extractBlock,
+        insertedBlock.nextElementSibling
+      );
       const firstNode = deepTraverseLeftNode(insertedBlock);
       this.$editor.range = setCursorToStart(firstNode);
     }

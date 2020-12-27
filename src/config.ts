@@ -1,4 +1,4 @@
-import { ExtractPluginInterface, PluginConstructor } from './plugin';
+import { ExtractPluginInterface, PluginConstructor } from './plugins/plugin';
 import { SerializedStruct } from './serialize';
 
 export type PropClassType = string | Record<string, any> | Array<any>;
@@ -68,3 +68,5 @@ export type IReigsteredPlugin = {
     constructorOrName: T
   ): ExtractPluginInterface<T> | undefined;
 };
+
+export const excludedInlineTags = ['IMG'];

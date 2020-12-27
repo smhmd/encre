@@ -9,7 +9,7 @@ import {
   isBlockContent,
 } from '../dom';
 import { isHTMLElement } from '../helpers';
-import { IPlugin, PluginConstructor, PluginTemplate, Feature } from '../plugin';
+import { IPlugin, PluginConstructor, PluginTemplate, Feature } from './plugin';
 import { Editor, EditorRole, HyperProps } from '../config';
 
 function makeBlockPlugin(
@@ -90,23 +90,11 @@ export const Heading4Plugin = makeBlockPlugin('h4', {}, 'heading-4');
 export const Heading5Plugin = makeBlockPlugin('h5', {}, 'heading-5');
 
 function makePropsReplacePlugin(props: HyperProps, inlineType: string) {
-  function isPluginActive(elm: HTMLElement) {
-    return elm.getAttribute('feature') === inlineType;
-  }
-
   return class PropsReplacePlugin extends PluginTemplate implements IPlugin {
+    _props: HyperProps;
     constructor(editor: Editor, innerProps: HyperProps = {}) {
       super(editor);
-      this.features = [
-        {
-          name: inlineType,
-          props: mergeProps(props, innerProps, {
-            feature: inlineType,
-            role: EditorRole.blockContent,
-            contenteditable: true,
-          }),
-        },
-      ];
+      this._props = mergeProps(props, innerProps);
     }
     exec() {
       if (this.$editor.disabled) return;
@@ -121,23 +109,12 @@ function makePropsReplacePlugin(props: HyperProps, inlineType: string) {
       ) {
         return;
       }
-      resolveProps(blc, this.features[0].props);
+      resolveProps(blc, this._props);
       const lastNode = deepTraverseRightNode(blc);
       this.$editor.range = setCursorToEnd(lastNode);
     }
     isActive() {
-      let _range: Range | null | undefined, blc: HTMLElement | undefined;
-      if (
-        !(_range = this.$editor.range) ||
-        !(blc = lookup(
-          _range.commonAncestorContainer,
-          (curr) => isHTMLElement(curr) && isBlockContent(curr)
-        ) as HTMLElement | undefined)
-      ) {
-        return false;
-      }
-
-      return isPluginActive(blc);
+      return false
     }
   };
 }

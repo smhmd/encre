@@ -1,0 +1,37 @@
+[
+  {
+    "feature": "block",
+    "children": [
+      {
+        "feature": "heading-2",
+        "children": [
+          "Encre Editor"
+        ]
+      }
+    ]
+  },
+  {
+    "feature": "block",
+    "children": [
+      {
+        "feature": "content",
+        "children": [
+          {
+            "tag": "b",
+            "children": ["content"]
+          },
+          "yes"
+        ]
+      }
+    ]
+  },
+  {
+    "feature": "block",
+    "children": [
+      {
+        "feature": "content",
+        "children": ["This is a navie rich text"]
+      }
+    ]
+  }
+]

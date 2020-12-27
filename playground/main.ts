@@ -1,5 +1,4 @@
 import '/src/theme.css';
-import '@fortawesome/fontawesome-free/css/all.min.css';
 import './style.css';
 import {
   createEncre,
@@ -17,6 +16,7 @@ import {
   AlignCenterPlugin,
   ImagePlugin,
 } from '/src/index';
+import placeholder from './word.json';
 
 const editor = createEncre()
   .use(
@@ -40,26 +40,7 @@ const editor = createEncre()
   .use(ImagePlugin)
   .mount('#content');
 
-editor.setJson([
-  {
-    feature: 'block',
-    children: [
-      {
-        feature: 'ul',
-        children: [
-          {
-            feature: 'li',
-            children: ['Hello'],
-          },
-          {
-            feature: 'li',
-            children: ['World'],
-          },
-        ],
-      },
-    ],
-  },
-]);
+editor.setJson(JSON.parse(JSON.stringify(placeholder)));
 
 function registerClick(
   selector: string,
@@ -94,6 +75,34 @@ function register(selector: string, constructor: new (...args: any[]) => any) {
   });
 }
 
+function registerImage() {
+  const input = document.querySelector('#img-input');
+  if (!input) return;
+  document.querySelector('#img')?.addEventListener(
+    'click',
+    () => {
+      input.click();
+    },
+    false
+  );
+  input.addEventListener('change', (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    const files = target.files;
+    if (!files) return;
+    let file: File | null;
+    for (let i = 0; i < files.length; i++) {
+      if ((file = files.item(i))) {
+        const reader = new FileReader();
+        reader.onload = function ($e) {
+          editor.plugins.get(ImagePlugin)?.exec($e.target?.result?.toString());
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+    (e.target as HTMLInputElement).value = '';
+  });
+}
+
 register('#ul', UnorderedList);
 register('#ol', OrderedList);
 register('#bold', BoldPlugin);
@@ -106,7 +115,4 @@ register('#paragraph', ParagraphPlugin);
 register('#align-left', AlignLeftPlugin);
 register('#align-center', AlignCenterPlugin);
 register('#align-right', AlignRightPlugin);
-
-editor.onUpdate(() => {
-  console.log(editor.getJson());
-});
+registerImage();

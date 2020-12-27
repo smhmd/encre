@@ -6,7 +6,7 @@ import {
   isString,
   isTextNode,
 } from './helpers';
-import { FeatureRecord } from './plugin';
+import { FeatureRecord } from './plugins/plugin';
 import {
   createDOM as h,
   isBlockContent,
@@ -164,7 +164,7 @@ function _deserializeNode(
     if (Object.keys(features).includes(f.toLowerCase())) {
       const attrs = features[f];
       attrs.tag && (tag = attrs.tag);
-      props = attrs.props;
+      props = mergeProps(s.props || {}, attrs.props);
     } else if (f.match(/(block)/i)) {
       return h('div', {
         role: EditorRole.block,
@@ -194,18 +194,20 @@ export function deserialize(
 ) {
   let result: Node = document.createDocumentFragment();
   if (!isArray(structs)) return result;
-  const stack: Array<SerializedStruct | string> = [];
-  const helperStack: DeserializeHelperItem[] = [];
-  let s: SerializedStruct;
-  for (let i = structs.length - 1; i >= 0; i--) {
-    s = structs[i];
-    if (
-      (s.props && s.props['role'] === EditorRole.block) ||
-      s.feature?.match(/(block)/i)
-    ) {
-      stack.push(s);
-    }
-  }
+  const stack: Array<SerializedStruct | string> = structs
+    .reverse()
+    .filter((s) => {
+      return (
+        (s.props && s.props['role'] === EditorRole.block) ||
+        s.feature?.match(/(block)/i)
+      );
+    });
+  const helperStack: DeserializeHelperItem[] = [
+    {
+      childrenCount: stack.length,
+      dom: document.createDocumentFragment(),
+    },
+  ];
 
   let item: SerializedStruct | string | undefined,
     tempDom: HyperElement,
@@ -219,6 +221,7 @@ export function deserialize(
     }
     topItem = getTop();
     tempDom = _deserializeNode(item, features, classes, disabled);
+
     topItem && topItem.childrenCount--;
     if (isString(item) || item.children.length === 0) {
       if (topItem) {
@@ -235,14 +238,13 @@ export function deserialize(
         dom: tempDom,
       });
     }
-
     while ((topItem = getTop()) && topItem.childrenCount === 0) {
       let tempItem = helperStack.pop();
       if (tempItem) {
-        if ((topItem = getTop())) {
-          topItem.dom.append(tempItem.dom);
-        } else {
+        if (!(topItem = getTop())) {
           result = tempItem.dom;
+        } else {
+          topItem.dom.append(tempItem.dom);
         }
       }
     }

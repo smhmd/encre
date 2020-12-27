@@ -1,4 +1,4 @@
-import { Editor, HyperProps } from './config';
+import { Editor, HyperProps } from '../config';
 export type Feature = { [prop: string]: any } & {
   name: string;
   props: HyperProps;

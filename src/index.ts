@@ -1,6 +1,6 @@
 import { createEditor } from './editor';
 import { EncreError, isString } from './helpers';
-import { ExtractPluginConstructor, PluginConstructor } from './plugin';
+import { ExtractPluginConstructor, PluginConstructor } from './plugins/plugin';
 import { Editor, EditorOptions, PluginItem } from './config';
 /**
  * @public - create encre context

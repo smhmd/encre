@@ -1,5 +1,5 @@
 import { Editor, EditorRole, HyperProps } from '../config';
-import { IPlugin, PluginTemplate, Feature, PluginConstructor } from '../plugin';
+import { IPlugin, PluginTemplate, Feature, PluginConstructor } from './plugin';
 import {
   convertBlockToInline,
   createDOM as h,

@@ -8,3 +8,24 @@
   height: 100%;
   width: 100%;
 }
+
+.editor-block {
+  outline: none;
+}
+[role*='editor-block-content'] {
+  outline: 0;
+  line-height: 1.5;
+  margin: 0;
+  padding: 4px 11px;
+  border: 1px solid transparent;
+}
+
+.editor-list {
+  padding-left: 31px;
+}
+
+.editor-image {
+  max-width: 100%;
+  min-width: 1px;
+  width: auto;
+}

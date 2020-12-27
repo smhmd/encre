@@ -7,6 +7,7 @@ import {
   PluginItem,
   HyperChildren,
   HyperProps,
+  excludedInlineTags,
 } from './config';
 import {
   bfs,
@@ -21,6 +22,7 @@ import {
   deepTraverseRightNode,
   dfs,
   setCursorToEnd,
+  html,
 } from './dom';
 import { createEvents } from './events';
 import {
@@ -33,13 +35,14 @@ import {
   isString,
   warn,
 } from './helpers';
-import { Feature, FeatureRecord, IPlugin, PluginConstructor } from './plugin';
 import {
-  isEncreStruct,
-  serialize,
-  deserialize,
-  SerializedStruct,
-} from './serialize';
+  ExtractPluginInterface,
+  Feature,
+  FeatureRecord,
+  IPlugin,
+  PluginConstructor,
+} from './plugins/plugin';
+import { serialize, deserialize, SerializedStruct } from './serialize';
 
 function registerPlugins(ctx: Editor, plugins: PluginItem[]) {
   let item: PluginItem, itemInstance: IPlugin, featureItem: Feature;
@@ -132,7 +135,11 @@ export function createEditor(
     let child: Node;
     for (let i = 0; i < blc.childNodes.length; ) {
       child = blc.childNodes.item(i);
-      if (!isBlockStyleElement(child) && !child.textContent?.length) {
+      if (
+        !isBlockStyleElement(child) &&
+        !excludedInlineTags.includes(child.tagName) &&
+        !child.textContent?.length
+      ) {
         blc.removeChild(child);
       } else {
         i++;
@@ -262,7 +269,13 @@ export function createEditor(
   };
   // initial global variables
   const { pluginMap, featureRecord } = registerPlugins(instance, plgs);
-  _plugins = pluginMap;
+  _plugins = {
+    get<T extends new (...args: any[]) => any>(
+      constructorOrName: T
+    ): ExtractPluginInterface<T> | undefined {
+      return pluginMap.get(constructorOrName);
+    },
+  };
   _features = featureRecord;
   _events = _options.readonly ? {} : createEvents(instance);
   // create children
