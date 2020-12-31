@@ -2,10 +2,17 @@ const { resolve } = require('path');
 
 module.exports = {
   root: resolve(__dirname, 'playground'),
-  port: 8080,
-  alias: {
-    '/src/': resolve(__dirname, './src')
+  alias: [
+    {
+      find: /^\/src/,
+      replacement: resolve(__dirname, 'src'),
+    },
+  ],
+  server: {
+    port: 8080,
   },
-  base: process.env.NODE_ENV === 'production' ? '/encre/' : '/',
-  outDir: resolve(__dirname, 'devDist')
+  build: {
+    base: process.env.NODE_ENV === 'production' ? '/encre/' : '/',
+    outDir: resolve(__dirname, 'devDist'),
+  },
 };

@@ -6,13 +6,16 @@ const config = require('../vite.config');
 const port = 3000;
 const docConfig = Object.assign({}, config, {
   root: resolve(__dirname, '../docs'),
-  port,
+  server: {
+    port,
+  },
 });
 (async function () {
   try {
     if (process.env.NODE_ENV !== 'production') {
+      console.log(docConfig);
       // dev doc
-      const server = await createServer(docConfig);
+      const server = await createServer(docConfig.root, docConfig);
       server.listen(port, () => {
         console.log(`listening at http://localhost:${port}`);
       });
