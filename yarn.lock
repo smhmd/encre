@@ -6040,10 +6040,10 @@ vite@^2.0.0-alpha.5:
   optionalDependencies:
     fsevents "~2.1.2"
 
-vitepress@^0.10.1:
-  version "0.10.1"
-  resolved "https://registry.npm.taobao.org/vitepress/download/vitepress-0.10.1.tgz#7c08b9e201505cc9408e261e96bc6a96bc85a51a"
-  integrity sha1-fAi54gFQXMlAjiYelrxqlryFpRo=
+vitepress@^0.10.2:
+  version "0.10.2"
+  resolved "https://registry.npm.taobao.org/vitepress/download/vitepress-0.10.2.tgz#50d33043a839c96217927b385534e7248d97ce84"
+  integrity sha1-UNMwQ6g5yWIXkns4VTTnJI2XzoQ=
   dependencies:
     "@docsearch/css" "^1.0.0-alpha.28"
     "@docsearch/js" "^1.0.0-alpha.28"
